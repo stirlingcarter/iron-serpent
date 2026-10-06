@@ -54,6 +54,10 @@ export interface Car {
   x: number;
   y: number;
   angle: number;
+  /** pose at the start of the latest physics step, for render interpolation */
+  prevX: number;
+  prevY: number;
+  prevAngle: number;
   /** seconds until this car can act again */
   cooldown: number;
   /** damage flash timer (seconds) */

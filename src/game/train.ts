@@ -21,6 +21,9 @@ export function createCar(kind: CarKind, level = 1, isLoco = false, hpScale = 1)
     x: 0,
     y: 0,
     angle: 0,
+    prevX: 0,
+    prevY: 0,
+    prevAngle: 0,
     cooldown: Math.random() * 0.5,
     flash: 0,
     grappleTarget: null,
@@ -95,7 +98,22 @@ const frontOut = { x: 0, y: 0, angle: 0 };
 const rearOut = { x: 0, y: 0, angle: 0 };
 const BOGIE_HALF = WORLD.carLength / 2;
 
+/** Record every car's current pose as the start of the next physics step. */
+export function storePrevPose(train: Train): void {
+  for (const c of train.cars) {
+    c.prevX = c.x;
+    c.prevY = c.y;
+    c.prevAngle = c.angle;
+  }
+}
+
+/** Re-place cars after a structural change (buy, sell, reorder, capture) without interpolating from old slots. */
 export function layoutCars(train: Train): void {
+  placeCars(train);
+  storePrevPose(train);
+}
+
+function placeCars(train: Train): void {
   const cars = train.cars;
   if (cars.length === 0) return;
   cars[0].x = train.x;
@@ -126,6 +144,7 @@ export function turnRateOf(train: Train): number {
 }
 
 export function moveTrain(train: Train, dt: number): void {
+  storePrevPose(train);
   const target = targetSpeed(train);
   if (train.speed < target) train.speed = Math.min(target, train.speed + MOVEMENT.accel * dt);
   else if (train.speed > target) train.speed = Math.max(target, train.speed - MOVEMENT.brake * dt);
@@ -180,7 +199,7 @@ export function moveTrain(train: Train, dt: number): void {
       if (train.odometer - last >= WORLD.trailStep) pushSample(t, nx, ny, train.odometer);
     }
   }
-  layoutCars(train);
+  placeCars(train);
 }
 
 export function clampSteer(s: number): Steer {

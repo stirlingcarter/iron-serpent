@@ -51,7 +51,7 @@ function boot(): void {
     }
     if (steps === MAX_STEPS) acc = 0;
     game.flushChanges();
-    renderer.draw(game, frame);
+    renderer.draw(game, frame, acc / STEP);
     ui.tick(frame);
     requestAnimationFrame(loop);
   };

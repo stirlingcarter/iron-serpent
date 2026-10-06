@@ -58,16 +58,25 @@ export class Renderer {
     this.camY = game.snap.player.y;
   }
 
-  draw(game: Game, dt: number): void {
+  /**
+   * `alpha` is the fraction of a physics step elapsed since the last update;
+   * trains are drawn between their previous and current step poses.
+   */
+  draw(game: Game, dt: number, alpha = 1): void {
     const ctx = this.ctx;
     const snap = game.snap;
     const player = snap.player;
     this.frame++;
+    this.alpha = snap.phase === "playing" ? Math.max(0, Math.min(1, alpha)) : 1;
 
     // camera: lead slightly in the direction of travel
+    const loco = player.cars[0];
+    const px = loco ? this.ix(loco) : player.x;
+    const py = loco ? this.iy(loco) : player.y;
+    const pa = loco ? this.ia(loco) : player.angle;
     const lead = Math.min(120, player.speed * 0.45);
-    const tx = player.x + Math.cos(player.angle) * lead;
-    const ty = player.y + Math.sin(player.angle) * lead;
+    const tx = px + Math.cos(pa) * lead;
+    const ty = py + Math.sin(pa) * lead;
     const k = 1 - Math.exp(-dt * 4.5);
     this.camX += (tx - this.camX) * k;
     this.camY += (ty - this.camY) * k;
@@ -109,6 +118,23 @@ export class Renderer {
     if (snap.phase === "playing" || snap.phase === "paused" || snap.phase === "shop") {
       this.drawOffscreenMarkers(game);
     }
+  }
+
+  private alpha = 1;
+
+  private ix(c: Car): number {
+    return c.prevX + (c.x - c.prevX) * this.alpha;
+  }
+
+  private iy(c: Car): number {
+    return c.prevY + (c.y - c.prevY) * this.alpha;
+  }
+
+  private ia(c: Car): number {
+    let d = c.angle - c.prevAngle;
+    if (d > Math.PI) d -= Math.PI * 2;
+    else if (d < -Math.PI) d += Math.PI * 2;
+    return c.prevAngle + d * this.alpha;
   }
 
   // ---------------------------------------------------------------- pieces
@@ -261,25 +287,27 @@ export class Renderer {
     for (let i = 1; i < cars.length; i++) {
       const a = cars[i - 1];
       const b = cars[i];
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
+      ctx.moveTo(this.ix(a), this.iy(a));
+      ctx.lineTo(this.ix(b), this.iy(b));
     }
     ctx.stroke();
 
     for (let i = cars.length - 1; i >= 0; i--) {
       const c = cars[i];
-      if (c.x < left - margin || c.x > right + margin || c.y < top - margin || c.y > bottom + margin) continue;
-      this.drawCar(c, i === 0, isPlayer);
+      const x = this.ix(c);
+      const y = this.iy(c);
+      if (x < left - margin || x > right + margin || y < top - margin || y > bottom + margin) continue;
+      this.drawCar(c, x, y, this.ia(c), i === 0, isPlayer);
     }
   }
 
-  private drawCar(c: Car, isLoco: boolean, isPlayer: boolean): void {
+  private drawCar(c: Car, x: number, y: number, angle: number, isLoco: boolean, isPlayer: boolean): void {
     const ctx = this.ctx;
     const def = CAR_DEFS[c.kind];
     const len = isLoco ? CAR_L + 6 : CAR_L;
     ctx.save();
-    ctx.translate(c.x, c.y);
-    ctx.rotate(c.angle);
+    ctx.translate(x, y);
+    ctx.rotate(angle);
 
     // wheels / bogies
     ctx.fillStyle = "#1a1f2b";
@@ -313,7 +341,7 @@ export class Renderer {
     }
 
     // glyph (upright regardless of heading)
-    ctx.rotate(-c.angle);
+    ctx.rotate(-angle);
     ctx.fillStyle = c.flash > 0 ? "#222" : "#ffffff";
     ctx.font = `bold ${isLoco ? 11 : 11}px system-ui, sans-serif`;
     ctx.textAlign = "center";
@@ -347,13 +375,17 @@ export class Renderer {
         if (c.kind !== "grapple" || !c.grappleTarget) continue;
         const g = c.grappleTarget;
         const f = 1 - c.grappleTimer / COMBAT.grappleDuration;
-        const hx = c.x + (g.x - c.x) * Math.min(1, f * 2.2);
-        const hy = c.y + (g.y - c.y) * Math.min(1, f * 2.2);
+        const cx = this.ix(c);
+        const cy = this.iy(c);
+        const gx = this.ix(g);
+        const gy = this.iy(g);
+        const hx = cx + (gx - cx) * Math.min(1, f * 2.2);
+        const hy = cy + (gy - cy) * Math.min(1, f * 2.2);
         ctx.strokeStyle = "#7ff5e0";
         ctx.lineWidth = 2;
         ctx.setLineDash([6, 4]);
         ctx.beginPath();
-        ctx.moveTo(c.x, c.y);
+        ctx.moveTo(cx, cy);
         ctx.lineTo(hx, hy);
         ctx.stroke();
         ctx.setLineDash([]);
@@ -364,7 +396,7 @@ export class Renderer {
         if (f * 2.2 >= 1) {
           ctx.strokeStyle = "rgba(127,245,224,0.8)";
           ctx.beginPath();
-          ctx.arc(g.x, g.y, 18 + Math.sin(this.frame * 0.5) * 2, 0, Math.PI * 2);
+          ctx.arc(gx, gy, 18 + Math.sin(this.frame * 0.5) * 2, 0, Math.PI * 2);
           ctx.stroke();
         }
       }

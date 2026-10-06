@@ -39,16 +39,21 @@ function noise(x: number, y: number, seed: number): number {
   return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
 }
 
+// Each octave is rotated so value-noise lattice artefacts don't line up.
+const ROT_C = Math.cos(0.9);
+const ROT_S = Math.sin(0.9);
+
 function fbm(x: number, y: number, octaves: number, seed: number): number {
   let sum = 0;
   let amp = 1;
   let norm = 0;
-  let f = 1;
   for (let o = 0; o < octaves; o++) {
-    sum += noise(x * f, y * f, seed + o * 101) * amp;
+    sum += noise(x, y, seed + o * 101) * amp;
     norm += amp;
     amp *= 0.5;
-    f *= 2.03;
+    const nx = (x * ROT_C - y * ROT_S) * 2.03;
+    y = (x * ROT_S + y * ROT_C) * 2.03;
+    x = nx + 17.3;
   }
   return sum / norm;
 }
@@ -58,13 +63,14 @@ function ridged(x: number, y: number, octaves: number, seed: number): number {
   let sum = 0;
   let amp = 1;
   let norm = 0;
-  let f = 1;
   for (let o = 0; o < octaves; o++) {
-    const n = 1 - Math.abs(noise(x * f, y * f, seed + o * 131) * 2 - 1);
+    const n = 1 - Math.abs(noise(x, y, seed + o * 131) * 2 - 1);
     sum += n * n * amp;
     norm += amp;
     amp *= 0.5;
-    f *= 2.1;
+    const nx = (x * ROT_C - y * ROT_S) * 2.1;
+    y = (x * ROT_S + y * ROT_C) * 2.1;
+    x = nx + 5.7;
   }
   return sum / norm;
 }
@@ -84,7 +90,7 @@ function sampleRaw(x: number, y: number, out: { h: number; ravine: number }): vo
 
   // Large regions decide where mountains rise and valleys sink.
   const region = fbm(x / T.regionScale, y / T.regionScale, 2, s + 11);
-  const mountains = smoothstep(0.5, 0.7, region);
+  const mountains = smoothstep(0.47, 0.66, region);
   if (mountains > 0) {
     const r = ridged(x / T.mountainScale, y / T.mountainScale, 3, s + 23);
     h += mountains * r * r * T.mountainAmp;

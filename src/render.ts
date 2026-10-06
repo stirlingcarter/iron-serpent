@@ -1,6 +1,7 @@
 import { CAR_DEFS, COMBAT, WORLD } from "./game/config";
 import type { Game } from "./game/game";
 import type { Car, Cow, Particle, Train } from "./game/types";
+import { TERRAIN_TEXEL, TerrainBaker } from "./terrainRender";
 
 const CAR_L = WORLD.carLength;
 const CAR_W = WORLD.carWidth;
@@ -31,6 +32,7 @@ export class Renderer {
   zoom = 1;
   private frame = 0;
   private canvas: HTMLCanvasElement;
+  private terrain: TerrainBaker | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -143,31 +145,24 @@ export class Renderer {
     const ctx = this.ctx;
     this.drawClouds(left, top, right, bottom);
 
-    ctx.fillStyle = "#5f9f58";
-    ctx.fillRect(0, 0, WORLD.width, WORLD.height);
-
-    // Deterministic, sparse blades: enough texture to read as grass without
-    // introducing visual noise or frame-to-frame shimmer.
-    const cell = 74;
-    const x0 = Math.max(0, Math.floor(left / cell) * cell);
-    const y0 = Math.max(0, Math.floor(top / cell) * cell);
-    const x1 = Math.min(WORLD.width, right);
-    const y1 = Math.min(WORLD.height, bottom);
-    ctx.strokeStyle = "rgba(35, 99, 48, 0.20)";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    for (let y = y0; y <= y1; y += cell) {
-      for (let x = x0; x <= x1; x += cell) {
-        const seed = ((x / cell) * 37 + (y / cell) * 61) % 17;
-        const px = x + 12 + seed * 2.1;
-        const py = y + 17 + ((seed * 11) % 31);
-        ctx.moveTo(px - 4, py + 3);
-        ctx.quadraticCurveTo(px - 2, py - 4, px, py - 6);
-        ctx.moveTo(px, py + 3);
-        ctx.quadraticCurveTo(px + 2, py - 3, px + 5, py - 5);
-      }
+    // Blit only the visible part of the pre-baked terrain image; it bakes over
+    // the first few frames, so lay a neutral ground colour underneath until then.
+    const baker = (this.terrain ??= new TerrainBaker());
+    if (!baker.done) {
+      baker.step(10);
+      ctx.fillStyle = "#5f9f58";
+      ctx.fillRect(0, 0, WORLD.width, WORLD.height);
     }
-    ctx.stroke();
+    const tex = baker.canvas;
+    const s = TERRAIN_TEXEL;
+    const x0 = Math.max(0, Math.floor(left / s) - 1);
+    const y0 = Math.max(0, Math.floor(top / s) - 1);
+    const x1 = Math.min(tex.width, Math.ceil(right / s) + 1);
+    const y1 = Math.min(tex.height, Math.ceil(bottom / s) + 1);
+    if (x1 > x0 && y1 > y0) {
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(tex, x0, y0, x1 - x0, y1 - y0, x0 * s, y0 * s, (x1 - x0) * s, (y1 - y0) * s);
+    }
 
     // A solid fence exactly follows the collision boundary. The locomotive
     // centre remains one car radius inside it, so its body meets the wall.

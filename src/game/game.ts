@@ -1,4 +1,4 @@
-import { CAR_DEFS, CAR_KINDS, COMBAT, ECONOMY, WAVES, WORLD, cooldownForLevel, enemyDamageScale } from "./config";
+import { CAR_DEFS, CAR_KINDS, COMBAT, ECONOMY, TERRAIN, WAVES, WORLD, cooldownForLevel, enemyDamageScale } from "./config";
 import { createCows, updateCows } from "./cows";
 import { burst, floatText, ring, smokePuff, updateParticles } from "./effects";
 import { spawnWave, updateAi } from "./enemies";
@@ -476,6 +476,7 @@ export class Game implements GameApi {
     const player = snap.player;
     moveTrain(player, dt);
     this.emitSmoke(player, dt);
+    this.landingFx(player);
     const loco = player.cars[0];
     if (loco.hp < loco.maxHp) loco.hp = Math.min(loco.maxHp, loco.hp + COMBAT.locoRegen * dt);
 
@@ -483,6 +484,7 @@ export class Game implements GameApi {
       updateAi(e, player, dt);
       moveTrain(e, dt);
       this.emitSmoke(e, dt);
+      this.landingFx(e);
     }
     updateCows(this.cows, [player, ...this.enemies], dt);
 
@@ -536,6 +538,19 @@ export class Game implements GameApi {
         this.spawnPending = false;
         this.markDirty();
       }
+    }
+  }
+
+  /** Dust (and a jolt for the player) when a locomotive lands after a fall. */
+  private landingFx(train: Train): void {
+    const impact = train.landing;
+    if (!(impact > 0)) return;
+    train.landing = 0;
+    const loco = train.cars[0];
+    if (!loco || impact < 120) return;
+    burst(this.particles, loco.x, loco.y, "#c8b58e", Math.min(18, 4 + impact / 40), 60 + impact * 0.25);
+    if (train.team === "player" && impact > TERRAIN.hardLanding) {
+      this.shake = Math.max(this.shake, Math.min(10, impact / 60));
     }
   }
 

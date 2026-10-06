@@ -1,5 +1,5 @@
 import { CAR_DEFS, COMBAT, MOVEMENT, TERRAIN, WORLD } from "./config";
-import { gradeFactor, updateTerrain } from "./terrainPhysics";
+import { gradeFactor, isAirborne, terrainStep, updateTerrain } from "./terrainPhysics";
 import { createTrail, pushSample, sampleTrail, seedTrail } from "./trail";
 import type { AiState, Car, CarKind, Steer, Team, Throttle, Train } from "./types";
 
@@ -60,6 +60,7 @@ export function createTrain(
     ai,
     smoke: 0,
     grade: 0,
+    landing: 0,
   };
   seedTrail(train.trail, x, y, angle, trailLength);
   train.odometer = trailLength;
@@ -148,10 +149,14 @@ export function turnRateOf(train: Train): number {
   return train.steer * MOVEMENT.turnRate * speedFactor;
 }
 
+const terrainOut = { x: 0, y: 0 };
+
 export function moveTrain(train: Train, dt: number): void {
   storePrevPose(train);
   const base = targetSpeed(train);
-  const target = base * gradeFactor(train);
+  // a locomotive in mid-air has no traction or steering
+  const airborne = isAirborne(train.cars[0]);
+  const target = airborne ? train.speed : base * gradeFactor(train);
   if (train.speed < target) train.speed = Math.min(target, train.speed + MOVEMENT.accel * dt);
   else if (train.speed > target) {
     // Full brakes only when stopping; terrain and throttle changes coast down gently.
@@ -161,12 +166,15 @@ export function moveTrain(train: Train, dt: number): void {
   if (!Number.isFinite(train.speed)) train.speed = 0;
 
   if (train.speed > 0.01) {
-    train.angle += turnRateOf(train) * dt;
+    if (!airborne) train.angle += turnRateOf(train) * dt;
     if (train.angle > Math.PI) train.angle -= Math.PI * 2;
     else if (train.angle < -Math.PI) train.angle += Math.PI * 2;
 
     let nx = train.x + Math.cos(train.angle) * train.speed * dt;
     let ny = train.y + Math.sin(train.angle) * train.speed * dt;
+    terrainStep(train, nx, ny, dt, terrainOut);
+    nx = terrainOut.x;
+    ny = terrainOut.y;
     const m = WORLD.carRadius;
     const hitX = nx < m || nx > WORLD.width - m;
     const hitY = ny < m || ny > WORLD.height - m;

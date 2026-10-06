@@ -215,6 +215,8 @@ export const TERRAIN = {
   cliffSlope: 1.6,
   /** ground falling away faster than this per px of travel launches a car */
   fallSlope: 1.5,
+  /** ...and by more than this many px in one step, so small kinks don't cause hops */
+  fallMinDrop: 5,
   gravity: 1300,
   /** cross-slope steeper than this makes the locomotive slide sideways */
   slideSlope: 0.75,
@@ -222,4 +224,6 @@ export const TERRAIN = {
   slideRate: 70,
   /** landing impact (px/s) that costs speed and shakes the camera */
   hardLanding: 260,
+  /** fraction of speed kept after a hard landing */
+  hardLandingSpeed: 0.8,
 };

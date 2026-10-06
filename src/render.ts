@@ -1,6 +1,7 @@
 import { CAR_DEFS, COMBAT, WORLD } from "./game/config";
 import type { Game } from "./game/game";
 import type { Car, Cow, Particle, Train } from "./game/types";
+import { heightAt } from "./game/terrain";
 import { TERRAIN_TEXEL, TerrainBaker } from "./terrainRender";
 
 const CAR_L = WORLD.carLength;
@@ -303,6 +304,18 @@ export class Renderer {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle);
+    // falling cars cast a shadow on the ground below and loom larger
+    const air = c.vz < 0 && Number.isFinite(c.z) ? Math.min(240, Math.max(0, c.z - heightAt(c.x, c.y))) : 0;
+    if (air > 0.5) {
+      ctx.rotate(-angle);
+      ctx.fillStyle = "rgba(10, 16, 10, 0.3)";
+      ctx.beginPath();
+      ctx.ellipse(air * 0.45, air * 0.55, len / 2, CAR_W / 2, angle, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.rotate(angle);
+      const lift = 1 + air / 260;
+      ctx.scale(lift, lift);
+    }
     // pitched cars look shorter from above
     const pitch = Number.isFinite(c.pitch) ? c.pitch : 0;
     const fore = Math.max(0.72, Math.cos(pitch));

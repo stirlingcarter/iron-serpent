@@ -99,6 +99,8 @@ export interface Train {
   smoke: number;
   /** weighted mean slope under the cars along their heading (+ = uphill) */
   grade: number;
+  /** impact speed of the locomotive's latest landing, cleared once effects play */
+  landing: number;
 }
 
 /** Ring buffer of locomotive positions used to lay cars out snake-style. */

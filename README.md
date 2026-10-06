@@ -25,6 +25,7 @@ deploys to GitHub Pages.
   the fastest way to derail a whole train. Enemy gunners are less accurate at long range;
   keeping your distance is a real defence.
 - Open the **Depot** (shop) at any time to buy, sell, upgrade and reorder cars.
+- The current test tuning starts the player with **5,000 gold** and allows up to **1,000 cars**.
 
 ### Cars
 

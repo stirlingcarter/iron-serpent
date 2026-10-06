@@ -1,7 +1,16 @@
 import { WORLD } from "./config";
 import type { Trail } from "./types";
 
-export function createTrail(capacity = WORLD.trailCapacity): Trail {
+/**
+ * Return enough samples to represent the complete spacing of a train with
+ * `carCount` cars, plus the seed margin used by createTrain.
+ */
+export function trailCapacityForCars(carCount: number): number {
+  const trainLength = (carCount + 2) * WORLD.carSpacing;
+  return Math.ceil(trainLength / WORLD.trailStep) + 2;
+}
+
+export function createTrail(capacity = trailCapacityForCars(WORLD.maxCars)): Trail {
   return {
     xs: new Float32Array(capacity),
     ys: new Float32Array(capacity),

@@ -5,12 +5,11 @@ export const WORLD = {
   height: 3600,
   /** px of locomotive travel between trail samples */
   trailStep: 3,
-  trailCapacity: 1024,
   carSpacing: 36,
   carLength: 30,
   carWidth: 18,
   carRadius: 15,
-  maxCars: 16,
+  maxCars: 1000,
 };
 
 export const MOVEMENT = {
@@ -24,7 +23,7 @@ export const MOVEMENT = {
 };
 
 export const ECONOMY = {
-  startGold: 40,
+  startGold: 5000,
   /** gold per enemy car at wave w: base + perWave * w */
   killBase: 14,
   killPerWave: 4,

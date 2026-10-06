@@ -1,4 +1,5 @@
 import { BUFFS, CAR_DEFS, COMBAT, MOVEMENT, TERRAIN, WORLD } from "./config";
+import { heightAt } from "./terrain";
 import { gradeFactor, isAirborne, terrainStep, updateTerrain } from "./terrainPhysics";
 import { createTrail, pushSample, sampleTrail, seedTrail } from "./trail";
 import type { AiState, Car, CarKind, Steer, Team, Throttle, Train } from "./types";
@@ -183,14 +184,37 @@ export function layoutCars(train: Train): void {
   storePrevPose(train);
 }
 
-function placeCars(train: Train): void {
+/**
+ * After cars[from - 1] and its old successor were joined (a car between them
+ * was removed), snap every car from `from` back into its trail slot. The jump
+ * is not interpolated, and grounded cars are settled onto the terrain at their
+ * new spot so the shift can't read as a ledge and launch them.
+ */
+export function closeGap(train: Train, from: number): void {
+  const cars = train.cars;
+  if (from >= cars.length) return;
+  placeCars(train, from);
+  for (let i = Math.max(0, from); i < cars.length; i++) {
+    const c = cars[i];
+    c.prevX = c.x;
+    c.prevY = c.y;
+    c.prevAngle = c.angle;
+    if (!(c.vz < 0)) {
+      const ground = heightAt(c.x, c.y);
+      c.z = Number.isFinite(ground) ? ground : NaN;
+      c.vz = 0;
+    }
+  }
+}
+
+function placeCars(train: Train, from = 0): void {
   const cars = train.cars;
   if (cars.length === 0) return;
   cars[0].x = train.x;
   cars[0].y = train.y;
   cars[0].angle = train.angle;
   const trail = train.trail;
-  for (let i = 1; i < cars.length; i++) {
+  for (let i = Math.max(1, from); i < cars.length; i++) {
     const car = cars[i];
     const s = train.odometer - i * WORLD.carSpacing;
     sampleTrail(trail, s, sampleOut);

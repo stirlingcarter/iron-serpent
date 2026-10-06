@@ -5,6 +5,7 @@ import { spawnWave, updateAi } from "./enemies";
 import {
   carHpForLevel,
   clampSteer,
+  closeGap,
   createCar,
   createTrain,
   goldBonus,
@@ -868,10 +869,15 @@ export class Game implements GameApi {
   /** Tear a car off `victim` (everything behind it derails) and couple it to `captor`. */
   private captureCar(captor: Train, victim: Train, index: number): void {
     const car = victim.cars[index];
-    // cars behind the stolen one are destroyed per the derail rule
-    this.destroyFrom(victim, index + 1);
-    victim.cars.length = index;
-    layoutCars(victim);
+    if (this.recouplerBehind(victim, index)) {
+      victim.cars.splice(index, 1);
+      closeGap(victim, index);
+    } else {
+      // cars behind the stolen one are destroyed per the derail rule
+      this.derailFrom(victim, index + 1);
+      victim.cars.length = index;
+      layoutCars(victim);
+    }
     burst(this.particles, car.x, car.y, CAR_DEFS.grapple.accent, 18, 220);
 
     const isPlayerCaptor = captor.team === "player";
@@ -1045,7 +1051,7 @@ export class Game implements GameApi {
             if (Math.random() < 0.25) burst(this.particles, (ec.x + pc.x) / 2, (ec.y + pc.y) / 2, "#ffd27f", 2, 120);
             this.damageCar(e, i, dmg * speedScale);
             this.damageCar(player, j, dmg * speedScale);
-            if (!e.alive || !e.cars[i]) break;
+            if (!e.alive || e.cars[i] !== ec) break;
           }
         }
       }
@@ -1110,8 +1116,48 @@ export class Game implements GameApi {
     }
   }
 
-  /** Destroy cars[index] and everything behind it. index 0 kills the train. */
+  /** True when the car behind cars[index] is a Re-Coupler that can bridge its loss. */
+  private recouplerBehind(train: Train, index: number): boolean {
+    return index > 0 && train.cars[index + 1]?.kind === "coupler";
+  }
+
+  /**
+   * A car died. Normally it and everything behind it derail; a Re-Coupler
+   * directly behind it instead couples the rest of the train to the car in front.
+   */
   private destroyFrom(train: Train, index: number): void {
+    if (this.recouplerBehind(train, index)) this.recouple(train, index);
+    else this.derailFrom(train, index);
+  }
+
+  /** Remove only cars[index] and close the gap so nothing behind it derails. */
+  private recouple(train: Train, index: number): void {
+    const cars = train.cars;
+    const c = cars[index];
+    const def = CAR_DEFS[c.kind];
+    burst(this.particles, c.x, c.y, def.accent, 14, 190);
+    burst(this.particles, c.x, c.y, "#ffb067", 8, 140);
+    c.grappleTarget = null;
+    if (train.team === "enemy") {
+      this.snap.stats.kills++;
+      this.addGold(this.killReward(false), c.x, c.y);
+    } else {
+      this.snap.stats.carsLost++;
+      this.shake = Math.max(this.shake, 4);
+      this.toast(`Lost a ${def.name}: Re-Coupler held the train together`);
+    }
+    cars.splice(index, 1);
+    closeGap(train, index);
+    const joint = cars[index];
+    if (joint) {
+      ring(this.particles, joint.x, joint.y, 26, CAR_DEFS.coupler.accent);
+      floatText(this.particles, joint.x, joint.y - 16, "re-coupled", CAR_DEFS.coupler.accent);
+    }
+    this.markDirty();
+  }
+
+  /** Destroy cars[index] and everything behind it. index 0 kills the train. */
+  private derailFrom(train: Train, index: number): void {
     const cars = train.cars;
     if (index >= cars.length) return;
     const isEnemy = train.team === "enemy";

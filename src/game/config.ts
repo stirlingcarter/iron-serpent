@@ -240,6 +240,20 @@ export const CAR_DEFS: Record<CarKind, CarDef> = {
     maxLevel: 5,
     stats: { armor: 0.06, armorPerLevel: 0.025 },
   },
+  coupler: {
+    kind: "coupler",
+    name: "Re-Coupler",
+    glyph: "&",
+    description:
+      "If the car directly in front of it is destroyed (or stolen), only that car is lost: the train closes the gap and nothing behind derails. If the Re-Coupler itself dies, normal rules apply.",
+    color: "#6e4b2a",
+    accent: "#f0c674",
+    baseCost: 150,
+    baseHp: 170,
+    hpPerLevel: 40,
+    maxLevel: 5,
+    stats: {},
+  },
 };
 
 /**
@@ -265,6 +279,7 @@ export const CAR_KINDS: CarKind[] = [
   "health",
   "booster",
   "armor",
+  "coupler",
   "gold",
 ];
 

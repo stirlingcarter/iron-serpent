@@ -11,7 +11,8 @@ export type CarKind =
   | "rocket"
   | "sniper"
   | "booster"
-  | "armor";
+  | "armor"
+  | "coupler";
 
 /** Continuous steering input: -1 full left, 0 straight, 1 full right. */
 export type Steer = number;

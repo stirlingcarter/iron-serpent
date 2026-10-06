@@ -23,8 +23,8 @@ deploys to GitHub Pages.
     cliff or ravine edge and the cars fall (no steering mid-air) and land; nothing takes damage.
     Very steep side slopes make the locomotive slide downhill.
 - Cows wander the grass and flee when a train comes close.
-- Every car has HP. When a car is destroyed, **everything behind it derails**. You lose when
-  the locomotive dies.
+- Every car has HP. When a car is destroyed, **everything behind it derails**, unless a
+  Re-Coupler is coupled directly behind it. You lose when the locomotive dies.
 - Enemy trains arrive in **waves** (usually one train, sometimes two or three), built from the
   same cars you use, with tougher loadouts as waves go on. The next wave rolls in seconds after
   the last one is destroyed; only death shows a screen.
@@ -50,6 +50,7 @@ deploys to GitHub Pages.
 | Repair Car | Slowly heals every car on the train |
 | Hull Booster | Raises max HP of every car (locomotive included) |
 | Armor Car | Reduces damage taken by every car |
+| Re-Coupler | If the car directly in front of it is destroyed or stolen, only that car is lost: the car ahead couples straight onto the Re-Coupler and the gap closes instantly. If the Re-Coupler itself dies, normal derail rules apply (unless another Re-Coupler is right behind it) |
 | Grappler | Hooks a weakened enemy car, tears it off their train (derailing everything behind it) and couples it to yours |
 
 Train-wide buffs are aggregated once per step (never per car pair), so they stay cheap on

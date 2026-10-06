@@ -423,6 +423,20 @@ export class Renderer {
         ctx.globalAlpha = 1;
         break;
       }
+      case "coupler": {
+        // heavy coupling hooks at both ends and a chain link across the roof
+        ctx.fillStyle = def.accent;
+        ctx.fillRect(len / 2 - 1, -3, 5, 6);
+        ctx.fillRect(-len / 2 - 4, -3, 5, 6);
+        ctx.strokeStyle = def.accent;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.ellipse(-5, 0, 5, 3.2, 0, 0, Math.PI * 2);
+        ctx.moveTo(10, 0);
+        ctx.ellipse(5, 0, 5, 3.2, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        break;
+      }
       case "armor": {
         // inset plate with corner rivets
         ctx.strokeStyle = "#2c3540";

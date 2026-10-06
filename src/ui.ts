@@ -293,7 +293,7 @@ export function mountUi(root: HTMLElement, game: GameApi): UiHandle {
   const steps = [
     "Hold LEFT or RIGHT for smooth steering. Drag SPEED to set any speed.",
     "Enemy trains arrive in waves and get tougher. Every enemy car you destroy pays gold.",
-    "When a car dies, every car coupled behind it derails. Lose your front engine and the run is over.",
+    "When a car dies, every car coupled behind it derails, unless a Re-Coupler sits right behind it. Lose your front engine and the run is over.",
     "Your turrets aim at the frontmost enemy car they can reach. Wreck a locomotive and its whole train derails, leaving a crate that adds a car to yours.",
     "SHOP (B) opens the Depot: buy, sell, upgrade and reorder cars. Time stops while it is open.",
   ];
@@ -415,7 +415,7 @@ export function mountUi(root: HTMLElement, game: GameApi): UiHandle {
     el(
       "p",
       "section__hint",
-      "Front to back. A destroyed car derails every car behind it, so keep what you cannot afford to lose near the front.",
+      "Front to back. A destroyed car derails every car behind it, so keep what you cannot afford to lose near the front. A Re-Coupler right behind a car saves everything behind it if that car dies.",
     ),
     buffLine,
     trainList,

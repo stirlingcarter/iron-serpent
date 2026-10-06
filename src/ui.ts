@@ -420,7 +420,7 @@ export function mountUi(root: HTMLElement, game: GameApi): UiHandle {
     buyGrid,
   );
 
-  shopBody.append(trainSection, buySection);
+  shopBody.append(buySection, trainSection);
 
   const shopFoot = el("footer", "shop__foot");
   shopFoot.append(button("Back to the rails", "btn--accent btn--big", () => game.closeShop()));

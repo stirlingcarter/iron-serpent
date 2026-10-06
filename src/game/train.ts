@@ -1,4 +1,5 @@
-import { CAR_DEFS, COMBAT, MOVEMENT, WORLD } from "./config";
+import { CAR_DEFS, COMBAT, MOVEMENT, TERRAIN, WORLD } from "./config";
+import { gradeFactor, updateTerrain } from "./terrainPhysics";
 import { createTrail, pushSample, sampleTrail, seedTrail } from "./trail";
 import type { AiState, Car, CarKind, Steer, Team, Throttle, Train } from "./types";
 
@@ -28,6 +29,9 @@ export function createCar(kind: CarKind, level = 1, isLoco = false, hpScale = 1)
     flash: 0,
     grappleTarget: null,
     grappleTimer: 0,
+    z: NaN,
+    vz: 0,
+    pitch: 0,
   };
 }
 
@@ -55,6 +59,7 @@ export function createTrain(
     trail: createTrail(),
     ai,
     smoke: 0,
+    grade: 0,
   };
   seedTrail(train.trail, x, y, angle, trailLength);
   train.odometer = trailLength;
@@ -145,9 +150,15 @@ export function turnRateOf(train: Train): number {
 
 export function moveTrain(train: Train, dt: number): void {
   storePrevPose(train);
-  const target = targetSpeed(train);
+  const base = targetSpeed(train);
+  const target = base * gradeFactor(train);
   if (train.speed < target) train.speed = Math.min(target, train.speed + MOVEMENT.accel * dt);
-  else if (train.speed > target) train.speed = Math.max(target, train.speed - MOVEMENT.brake * dt);
+  else if (train.speed > target) {
+    // Full brakes only when stopping; terrain and throttle changes coast down gently.
+    const decel = train.throttle < 0.05 ? MOVEMENT.brake : train.speed > base ? TERRAIN.coastDecel : TERRAIN.gradeDecel;
+    train.speed = Math.max(target, train.speed - decel * dt);
+  }
+  if (!Number.isFinite(train.speed)) train.speed = 0;
 
   if (train.speed > 0.01) {
     train.angle += turnRateOf(train) * dt;
@@ -200,6 +211,7 @@ export function moveTrain(train: Train, dt: number): void {
     }
   }
   placeCars(train);
+  updateTerrain(train, dt);
 }
 
 export function clampSteer(s: number): Steer {

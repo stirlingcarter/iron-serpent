@@ -203,10 +203,12 @@ export const TERRAIN = {
 
   /** grade multiplier: target speed is scaled by 1 - gradeEffect * mean slope */
   gradeEffect: 1.9,
-  minGradeFactor: 0.22,
+  minGradeFactor: 0.26,
   maxGradeFactor: 1.85,
   /** px/s^2 used when a train is above its grade-adjusted target speed */
   gradeDecel: 150,
+  /** px/s^2 when above the throttle setting itself (e.g. after a descent) */
+  coastDecel: 230,
   /** locomotive counts this many times in the train's mean slope */
   locoGradeWeight: 2,
   /** uphill rise per px beyond which ground acts like a wall */

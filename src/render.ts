@@ -303,6 +303,10 @@ export class Renderer {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle);
+    // pitched cars look shorter from above
+    const pitch = Number.isFinite(c.pitch) ? c.pitch : 0;
+    const fore = Math.max(0.72, Math.cos(pitch));
+    ctx.scale(fore, 1);
 
     // wheels / bogies
     ctx.fillStyle = "#1a1f2b";
@@ -334,6 +338,13 @@ export class Renderer {
       ctx.fillStyle = "rgba(255,255,255,0.14)";
       ctx.fillRect(-len / 2 + 4, -CAR_W / 2 + 3, len - 8, 3);
     }
+    // a raised nose catches the light, a dipped one falls into shade
+    if (pitch > 0.06 || pitch < -0.06) {
+      const a = Math.min(0.35, Math.abs(pitch) * 0.6);
+      ctx.fillStyle = pitch > 0 ? `rgba(255,255,255,${a.toFixed(2)})` : `rgba(0,0,0,${a.toFixed(2)})`;
+      ctx.fillRect(0, -CAR_W / 2, len / 2, CAR_W);
+    }
+    ctx.scale(1 / fore, 1);
 
     // glyph (upright regardless of heading)
     ctx.rotate(-angle);

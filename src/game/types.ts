@@ -65,6 +65,10 @@ export interface Car {
   /** grapple runtime */
   grappleTarget: Car | null;
   grappleTimer: number;
+  /** terrain: body height (NaN until first settled), vertical speed, nose-up pitch in radians */
+  z: number;
+  vz: number;
+  pitch: number;
 }
 
 export interface AiState {
@@ -93,6 +97,8 @@ export interface Train {
   ai: AiState | null;
   /** smoke puff timer */
   smoke: number;
+  /** weighted mean slope under the cars along their heading (+ = uphill) */
+  grade: number;
 }
 
 /** Ring buffer of locomotive positions used to lay cars out snake-style. */

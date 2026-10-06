@@ -42,6 +42,8 @@ deploys to GitHub Pages.
 | --- | --- |
 | Engine | Extra thrust; more engines, faster train |
 | Turret | Auto-targets and shoots the nearest enemy car |
+| Rocket Car | Slow rockets with splash damage; long cooldown. Bursts over the predicted aim point if it touches nothing on the way |
+| Sniper Car | Very long range, heavy single hits, slow fire. Targets the enemy car with the most HP left in range (locomotives count double) |
 | Tesla Coil | Periodic area zap hitting every enemy car in range |
 | Mine Layer | Drops mines behind you that enemies detonate |
 | Vault | Increases gold per kill |

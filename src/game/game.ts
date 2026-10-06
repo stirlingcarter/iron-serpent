@@ -611,6 +611,38 @@ export class Game implements GameApi {
     return this.target;
   }
 
+  /** Sniper targeting: the car with the most HP left in range, locomotives weighted up. */
+  private toughestOpposing(train: Train, x: number, y: number, range: number): Target | null {
+    const r2 = range * range;
+    let best: Car | null = null;
+    let bestTrain: Train | null = null;
+    let bestScore = -Infinity;
+    let bestD = 0;
+    for (const t of this.opponents(train)) {
+      if (!t.alive) continue;
+      const cars = t.cars;
+      for (let i = 0; i < cars.length; i++) {
+        const c = cars[i];
+        const dx = c.x - x;
+        const dy = c.y - y;
+        const d = dx * dx + dy * dy;
+        if (d > r2) continue;
+        const score = c.hp * (i === 0 ? COMBAT.sniperLocoWeight : 1);
+        if (score > bestScore) {
+          bestScore = score;
+          bestD = d;
+          best = c;
+          bestTrain = t;
+        }
+      }
+    }
+    if (!best || !bestTrain) return null;
+    this.target.car = best;
+    this.target.train = bestTrain;
+    this.target.dist = Math.sqrt(bestD);
+    return this.target;
+  }
+
   private damageScale(team: Team): number {
     return team === "enemy" ? enemyDamageScale(this.snap.wave) : 1;
   }
@@ -646,8 +678,61 @@ export class Game implements GameApi {
             damage: ((s.damage ?? 10) + (s.damagePerLevel ?? 0) * (car.level - 1)) * scale,
             team: train.team,
             life: COMBAT.bulletLife,
+            kind: "bullet",
+            splash: 0,
           });
           car.cooldown = cooldownForLevel(s.cooldown ?? 0.5, car.level);
+          break;
+        }
+        case "rocket": {
+          if (car.cooldown > 0) break;
+          const range = (s.range ?? 400) + (s.rangePerLevel ?? 0) * (car.level - 1);
+          const t = this.nearestOpposing(train, car.x, car.y, range);
+          if (!t) break;
+          const speed = COMBAT.rocketSpeed;
+          let flight = t.dist / speed;
+          predictCar(t.car, t.train, flight, aim);
+          flight = Math.hypot(aim.x - car.x, aim.y - car.y) / speed;
+          predictCar(t.car, t.train, flight, aim);
+          const a = Math.atan2(aim.y - car.y, aim.x - car.x) + (Math.random() - 0.5) * COMBAT.rocketSpread;
+          const dist = Math.hypot(aim.x - car.x, aim.y - car.y);
+          this.bullets.push({
+            x: car.x + Math.cos(a) * 12,
+            y: car.y + Math.sin(a) * 12,
+            vx: Math.cos(a) * speed,
+            vy: Math.sin(a) * speed,
+            damage: ((s.damage ?? 30) + (s.damagePerLevel ?? 0) * (car.level - 1)) * scale,
+            team: train.team,
+            // bursts over the predicted aim point even if nothing is touched on the way
+            life: Math.max(0.05, (dist - 12) / speed),
+            kind: "rocket",
+            splash: (s.splashRadius ?? 60) + (s.splashRadiusPerLevel ?? 0) * (car.level - 1),
+          });
+          smokePuff(this.particles, car.x, car.y, -Math.cos(a) * 60, -Math.sin(a) * 60);
+          car.cooldown = cooldownForLevel(s.cooldown ?? 2.6, car.level);
+          break;
+        }
+        case "sniper": {
+          if (car.cooldown > 0) break;
+          const range = (s.range ?? 700) + (s.rangePerLevel ?? 0) * (car.level - 1);
+          const t = this.toughestOpposing(train, car.x, car.y, range);
+          if (!t) break;
+          const speed = COMBAT.sniperSpeed;
+          predictCar(t.car, t.train, t.dist / speed, aim);
+          const a = Math.atan2(aim.y - car.y, aim.x - car.x);
+          this.bullets.push({
+            x: car.x + Math.cos(a) * 14,
+            y: car.y + Math.sin(a) * 14,
+            vx: Math.cos(a) * speed,
+            vy: Math.sin(a) * speed,
+            damage: ((s.damage ?? 80) + (s.damagePerLevel ?? 0) * (car.level - 1)) * scale,
+            team: train.team,
+            life: (range * 1.15) / speed,
+            kind: "sniper",
+            splash: 0,
+          });
+          burst(this.particles, car.x + Math.cos(a) * 16, car.y + Math.sin(a) * 16, def.accent, 4, 120);
+          car.cooldown = cooldownForLevel(s.cooldown ?? 3.4, car.level);
           break;
         }
         case "aoe": {
@@ -818,31 +903,54 @@ export class Game implements GameApi {
 
   private updateBullets(dt: number): void {
     const bullets = this.bullets;
-    const hitR = (WORLD.carRadius + COMBAT.bulletRadius) ** 2;
     for (let i = bullets.length - 1; i >= 0; i--) {
       const b = bullets[i];
+      const x0 = b.x;
+      const y0 = b.y;
       b.life -= dt;
       b.x += b.vx * dt;
       b.y += b.vy * dt;
-      let dead = b.life <= 0 || b.x < 0 || b.y < 0 || b.x > WORLD.width || b.y > WORLD.height;
-      if (!dead) {
+      const expired = b.life <= 0;
+      let dead = expired || b.x < 0 || b.y < 0 || b.x > WORLD.width || b.y > WORLD.height;
+      let hit = false;
+      if (b.kind === "rocket" && Math.random() < 0.5) {
+        smokePuff(this.particles, b.x - b.vx * 0.03, b.y - b.vy * 0.03, -b.vx * 0.5, -b.vy * 0.5);
+      }
+      if (!dead || expired) {
+        const hitR = WORLD.carRadius + (b.kind === "rocket" ? COMBAT.rocketRadius : COMBAT.bulletRadius);
+        const hitR2 = hitR * hitR;
+        // swept test along this step's path so fast sniper rounds cannot skip past a car
+        const sx = b.x - x0;
+        const sy = b.y - y0;
+        const len2 = sx * sx + sy * sy;
         const targets = b.team === "player" ? this.enemies : [this.snap.player];
         outer: for (const t of targets) {
           if (!t.alive) continue;
           const cars = t.cars;
           for (let j = 0; j < cars.length; j++) {
             const c = cars[j];
-            const dx = c.x - b.x;
-            const dy = c.y - b.y;
-            if (dx * dx + dy * dy < hitR) {
-              burst(this.particles, b.x, b.y, b.team === "player" ? "#7fd1ff" : "#ff8a65", 3, 90);
-              this.damageCar(t, j, b.damage);
-              dead = true;
+            let u = len2 > 0 ? ((c.x - x0) * sx + (c.y - y0) * sy) / len2 : 1;
+            u = u < 0 ? 0 : u > 1 ? 1 : u;
+            const dx = c.x - (x0 + sx * u);
+            const dy = c.y - (y0 + sy * u);
+            if (dx * dx + dy * dy < hitR2) {
+              b.x = x0 + sx * u;
+              b.y = y0 + sy * u;
+              if (b.kind === "rocket") {
+                this.explodeRocket(b);
+              } else {
+                const color = b.kind === "sniper" ? CAR_DEFS.sniper.accent : b.team === "player" ? "#7fd1ff" : "#ff8a65";
+                burst(this.particles, b.x, b.y, color, b.kind === "sniper" ? 8 : 3, 90);
+                this.damageCar(t, j, b.damage);
+              }
+              hit = true;
               break outer;
             }
           }
         }
       }
+      if (hit) dead = true;
+      else if (expired && b.kind === "rocket") this.explodeRocket(b);
       if (dead) {
         bullets[i] = bullets[bullets.length - 1];
         bullets.pop();
@@ -879,6 +987,15 @@ export class Game implements GameApi {
         mines.pop();
       }
     }
+  }
+
+  private explodeRocket(b: Bullet): void {
+    this.damageArea(b.team, b.x, b.y, b.splash, b.damage);
+    const color = CAR_DEFS.rocket.accent;
+    burst(this.particles, b.x, b.y, color, 12, 200);
+    burst(this.particles, b.x, b.y, "#ff7b3a", 8, 140);
+    ring(this.particles, b.x, b.y, b.splash, color);
+    if (b.team === "enemy") this.shake = Math.max(this.shake, 3);
   }
 
   private explodeMine(m: Mine): void {

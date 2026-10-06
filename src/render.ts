@@ -350,6 +350,7 @@ export class Renderer {
     } else {
       ctx.fillStyle = "rgba(255,255,255,0.14)";
       ctx.fillRect(-len / 2 + 4, -CAR_W / 2 + 3, len - 8, 3);
+      this.drawCarDetail(c, len);
     }
     // a raised nose catches the light, a dipped one falls into shade
     if (pitch > 0.06 || pitch < -0.06) {
@@ -384,6 +385,38 @@ export class Renderer {
       ctx.fillRect(-w / 2, -CAR_W / 2 - 9, w * f, 4);
     }
     ctx.restore();
+  }
+
+  /** Kind-specific hardware drawn in the car's local frame (+x = forward), under the glyph. */
+  private drawCarDetail(c: Car, len: number): void {
+    const ctx = this.ctx;
+    const def = CAR_DEFS[c.kind];
+    const hw = CAR_W / 2;
+    switch (c.kind) {
+      case "rocket": {
+        // twin launch tubes with warhead tips
+        ctx.fillStyle = "#2b2f22";
+        ctx.fillRect(-len / 2 + 3, -hw + 2, len - 6, 4.5);
+        ctx.fillRect(-len / 2 + 3, hw - 6.5, len - 6, 4.5);
+        ctx.fillStyle = c.cooldown > 0.3 ? "#6b5f2a" : def.accent;
+        ctx.fillRect(len / 2 - 6, -hw + 2, 3.5, 4.5);
+        ctx.fillRect(len / 2 - 6, hw - 6.5, 3.5, 4.5);
+        break;
+      }
+      case "sniper": {
+        // long barrel past the nose, with a scope glint
+        ctx.fillStyle = "#11151d";
+        ctx.fillRect(0, -1.3, len / 2 + 9, 2.6);
+        ctx.fillRect(len / 2 + 6, -2.2, 3, 4.4);
+        ctx.fillStyle = def.accent;
+        ctx.beginPath();
+        ctx.arc(-4, -hw + 4.5, 2, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+      default:
+        break;
+    }
   }
 
   private drawGrapples(game: Game): void {
@@ -430,7 +463,7 @@ export class Renderer {
     ctx.strokeStyle = "#9fdcff";
     ctx.beginPath();
     for (const b of game.bullets) {
-      if (b.team !== "player") continue;
+      if (b.team !== "player" || b.kind !== "bullet") continue;
       if (b.x < left || b.x > right || b.y < top || b.y > bottom) continue;
       ctx.moveTo(b.x, b.y);
       ctx.lineTo(b.x - b.vx * 0.018, b.y - b.vy * 0.018);
@@ -439,13 +472,46 @@ export class Renderer {
     ctx.strokeStyle = "#ff8a65";
     ctx.beginPath();
     for (const b of game.bullets) {
-      if (b.team !== "enemy") continue;
+      if (b.team !== "enemy" || b.kind !== "bullet") continue;
       if (b.x < left || b.x > right || b.y < top || b.y > bottom) continue;
       ctx.moveTo(b.x, b.y);
       ctx.lineTo(b.x - b.vx * 0.018, b.y - b.vy * 0.018);
     }
     ctx.stroke();
+    // sniper tracers: long, thin, bright
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = CAR_DEFS.sniper.accent;
+    ctx.beginPath();
+    for (const b of game.bullets) {
+      if (b.kind !== "sniper") continue;
+      if (b.x < left - 60 || b.x > right + 60 || b.y < top - 60 || b.y > bottom + 60) continue;
+      ctx.moveTo(b.x, b.y);
+      ctx.lineTo(b.x - b.vx * 0.04, b.y - b.vy * 0.04);
+    }
+    ctx.stroke();
     ctx.lineCap = "butt";
+    for (const b of game.bullets) {
+      if (b.kind !== "rocket") continue;
+      if (b.x < left - 20 || b.x > right + 20 || b.y < top - 20 || b.y > bottom + 20) continue;
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.rotate(Math.atan2(b.vy, b.vx));
+      ctx.fillStyle = (this.frame & 2) === 0 ? "#ffb347" : "#ff6b2b";
+      ctx.beginPath();
+      ctx.moveTo(-5, -2.5);
+      ctx.lineTo(-12 - Math.random() * 4, 0);
+      ctx.lineTo(-5, 2.5);
+      ctx.fill();
+      ctx.fillStyle = b.team === "player" ? "#e8eef7" : "#ffcfc4";
+      ctx.fillRect(-6, -2.5, 10, 5);
+      ctx.fillStyle = CAR_DEFS.rocket.accent;
+      ctx.beginPath();
+      ctx.moveTo(4, -2.5);
+      ctx.lineTo(8, 0);
+      ctx.lineTo(4, 2.5);
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   private drawParticles(list: Particle[], left: number, top: number, right: number, bottom: number): void {

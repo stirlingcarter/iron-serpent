@@ -7,7 +7,9 @@ export type CarKind =
   | "trap"
   | "gold"
   | "health"
-  | "grapple";
+  | "grapple"
+  | "rocket"
+  | "sniper";
 
 /** Continuous steering input: -1 full left, 0 straight, 1 full right. */
 export type Steer = number;
@@ -29,6 +31,9 @@ export interface CarStats {
   /** grapple: max HP of a car it can tear off and capture */
   grappleStrength?: number;
   grappleStrengthPerLevel?: number;
+  /** rocket: blast radius of each warhead */
+  splashRadius?: number;
+  splashRadiusPerLevel?: number;
 }
 
 export interface CarDef {
@@ -123,6 +128,9 @@ export interface Bullet {
   damage: number;
   team: Team;
   life: number;
+  kind: "bullet" | "rocket" | "sniper";
+  /** rocket blast radius; 0 for direct-hit rounds */
+  splash: number;
 }
 
 export interface Mine {

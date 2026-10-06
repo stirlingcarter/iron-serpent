@@ -15,6 +15,8 @@ const ROSTER: Weighted[] = [
   { kind: "trap", weight: (w) => (w >= 5 ? 2 + Math.min(4, w * 0.3) : 0) },
   { kind: "gold", weight: (w) => (w >= 2 ? 2 : 0) },
   { kind: "grapple", weight: (w) => (w >= 10 ? 1 + Math.min(3, (w - 10) * 0.3) : 0) },
+  { kind: "rocket", weight: (w) => (w >= 7 ? 1 + Math.min(3, (w - 7) * 0.3) : 0) },
+  { kind: "sniper", weight: (w) => (w >= 12 ? 1 + Math.min(2, (w - 12) * 0.2) : 0) },
 ];
 
 function pickKind(wave: number): CarKind {

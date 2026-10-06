@@ -60,6 +60,14 @@ export const COMBAT = {
   /** innate self-repair of the player's locomotive, HP per second */
   locoRegen: 2.5,
   grappleDuration: 0.75,
+  /** rockets fly slowly and burst at the predicted aim point if they miss */
+  rocketSpeed: 330,
+  rocketRadius: 8,
+  rocketSpread: 0.05,
+  /** sniper rounds are near-hitscan; hits are swept so they cannot tunnel */
+  sniperSpeed: 1600,
+  /** sniper target score multiplier for a locomotive (killing it derails the train) */
+  sniperLocoWeight: 2,
 };
 
 /** Enemy weapons start soft and ramp up so early waves teach rather than punish. */
@@ -172,9 +180,53 @@ export const CAR_DEFS: Record<CarKind, CarDef> = {
     maxLevel: 5,
     stats: { range: 300, rangePerLevel: 20, cooldown: 8, grappleStrength: 95, grappleStrengthPerLevel: 55 },
   },
+  rocket: {
+    kind: "rocket",
+    name: "Rocket Car",
+    glyph: "R",
+    description: "Lobs slow rockets at the frontmost enemy car in range. Each blast damages every car around the impact.",
+    color: "#7f8c3a",
+    accent: "#f4e04d",
+    baseCost: 190,
+    baseHp: 120,
+    hpPerLevel: 24,
+    maxLevel: 6,
+    stats: {
+      damage: 34,
+      damagePerLevel: 12,
+      cooldown: 2.6,
+      range: 430,
+      rangePerLevel: 25,
+      splashRadius: 62,
+      splashRadiusPerLevel: 6,
+    },
+  },
+  sniper: {
+    kind: "sniper",
+    name: "Sniper Car",
+    glyph: "S",
+    description: "Very long range, slow fire. Picks off the toughest enemy car it can see, locomotives first.",
+    color: "#3d4a5c",
+    accent: "#ff5c8a",
+    baseCost: 210,
+    baseHp: 95,
+    hpPerLevel: 18,
+    maxLevel: 6,
+    stats: { damage: 90, damagePerLevel: 32, cooldown: 3.4, range: 760, rangePerLevel: 40 },
+  },
 };
 
-export const CAR_KINDS: CarKind[] = ["gun", "aoe", "trap", "grapple", "engine", "health", "gold"];
+export const CAR_KINDS: CarKind[] = [
+  "gun",
+  "rocket",
+  "sniper",
+  "aoe",
+  "trap",
+  "grapple",
+  "engine",
+  "health",
+  "gold",
+];
 
 export function cooldownForLevel(base: number, level: number): number {
   return base * Math.pow(0.92, level - 1);

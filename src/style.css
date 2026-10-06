@@ -263,6 +263,18 @@ ul {
   font-weight: 700;
 }
 
+.stat--guard.is-hidden {
+  display: none;
+}
+
+.stat--guard .stat__value {
+  color: #b38f3a;
+}
+
+.stat--guard.is-ready .stat__value {
+  color: #ffd166;
+}
+
 .engine {
   flex: 1 1 auto;
   display: grid;

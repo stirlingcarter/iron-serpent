@@ -293,11 +293,64 @@ export class Renderer {
       const x = this.ix(c);
       const y = this.iy(c);
       if (x < left - margin || x > right + margin || y < top - margin || y > bottom + margin) continue;
-      this.drawCar(c, x, y, this.ia(c), i === 0, isPlayer);
+      if (i === 0 && train.buffs.guardRate > 0) this.drawCowCatcher(train, x, y, this.ia(c));
+      this.drawCar(c, x, y, this.ia(c), i === 0, isPlayer, train.guardCharge);
     }
   }
 
-  private drawCar(c: Car, x: number, y: number, angle: number, isLoco: boolean, isPlayer: boolean): void {
+  /** V-plow on the locomotive's nose: lit and pulsing when charged, dark and filling while it regrows. */
+  private drawCowCatcher(train: Train, x: number, y: number, angle: number): void {
+    const ctx = this.ctx;
+    const accent = CAR_DEFS.guard.accent;
+    const charge = Math.max(0, Math.min(1, train.guardCharge));
+    const ready = charge >= 1;
+    const nose = (CAR_L + 6) / 2;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    if (ready) {
+      ctx.globalAlpha = 0.25 + 0.15 * Math.sin(this.frame * 0.12);
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      ctx.arc(nose + 4, 0, 15, -Math.PI / 2, Math.PI / 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    const plow = () => {
+      ctx.beginPath();
+      ctx.moveTo(nose - 2, -CAR_W / 2 - 2);
+      ctx.lineTo(nose + 9, 0);
+      ctx.lineTo(nose - 2, CAR_W / 2 + 2);
+      ctx.closePath();
+    };
+    ctx.fillStyle = "#2a2416";
+    plow();
+    ctx.fill();
+    if (!ready && charge > 0) {
+      // fill the wedge from its base toward the tip as the charge regrows
+      ctx.save();
+      plow();
+      ctx.clip();
+      ctx.fillStyle = "rgba(255, 209, 102, 0.45)";
+      ctx.fillRect(nose - 2, -CAR_W, 11 * charge, CAR_W * 2);
+      ctx.restore();
+    }
+    ctx.strokeStyle = ready ? accent : "#6b5a2e";
+    ctx.lineWidth = ready ? 2 : 1.5;
+    plow();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  private drawCar(
+    c: Car,
+    x: number,
+    y: number,
+    angle: number,
+    isLoco: boolean,
+    isPlayer: boolean,
+    guardCharge: number,
+  ): void {
     const ctx = this.ctx;
     const def = CAR_DEFS[c.kind];
     const len = isLoco ? CAR_L + 6 : CAR_L;
@@ -350,7 +403,7 @@ export class Renderer {
     } else {
       ctx.fillStyle = "rgba(255,255,255,0.14)";
       ctx.fillRect(-len / 2 + 4, -CAR_W / 2 + 3, len - 8, 3);
-      this.drawCarDetail(c, len);
+      this.drawCarDetail(c, len, guardCharge);
     }
     // a raised nose catches the light, a dipped one falls into shade
     if (pitch > 0.06 || pitch < -0.06) {
@@ -388,7 +441,7 @@ export class Renderer {
   }
 
   /** Kind-specific hardware drawn in the car's local frame (+x = forward), under the glyph. */
-  private drawCarDetail(c: Car, len: number): void {
+  private drawCarDetail(c: Car, len: number, guardCharge: number): void {
     const ctx = this.ctx;
     const def = CAR_DEFS[c.kind];
     const hw = CAR_W / 2;
@@ -421,6 +474,25 @@ export class Renderer {
         ctx.fillStyle = def.accent;
         for (const rx of [-len / 2 + 5, -1.5, len / 2 - 8]) ctx.fillRect(rx, -hw + 1.5, 3, CAR_W - 3);
         ctx.globalAlpha = 1;
+        break;
+      }
+      case "guard": {
+        // a small plow at the nose and a side meter showing the train's guard charge
+        const ready = guardCharge >= 1;
+        ctx.fillStyle = "#2a2416";
+        ctx.beginPath();
+        ctx.moveTo(len / 2 - 3, -hw + 1);
+        ctx.lineTo(len / 2 + 4, 0);
+        ctx.lineTo(len / 2 - 3, hw - 1);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = ready ? def.accent : "#6b5a2e";
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
+        ctx.fillRect(-len / 2 + 3, hw - 4.5, len - 9, 2.5);
+        ctx.fillStyle = ready ? def.accent : "#b38f3a";
+        ctx.fillRect(-len / 2 + 3, hw - 4.5, (len - 9) * Math.max(0, Math.min(1, guardCharge)), 2.5);
         break;
       }
       case "coupler": {

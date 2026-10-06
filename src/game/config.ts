@@ -254,6 +254,20 @@ export const CAR_DEFS: Record<CarKind, CarDef> = {
     maxLevel: 5,
     stats: {},
   },
+  guard: {
+    kind: "guard",
+    name: "Cattle Guard",
+    glyph: "V",
+    description:
+      "Fits a cow-catcher to your locomotive that absorbs one mine blast completely, then regrows. The train holds one charge at most; extra Cattle Guards only recharge it faster.",
+    color: "#8c6f1f",
+    accent: "#ffd166",
+    baseCost: 145,
+    baseHp: 140,
+    hpPerLevel: 28,
+    maxLevel: 5,
+    stats: { guardRate: 1, guardRatePerLevel: 0.3 },
+  },
 };
 
 /**
@@ -266,6 +280,14 @@ export const BUFFS = {
   hpBoostCap: 1.0,
   /** damage reduction tops out at this fraction */
   armorCap: 0.6,
+  /**
+   * Cattle guard: a single charge per train, never queued. The summed guard
+   * rate R (1 per Lv1 car, +guardRatePerLevel per level) sets the regrow time
+   * to max(guardMinRecharge, guardRecharge / R^guardStackExponent).
+   */
+  guardRecharge: 16,
+  guardMinRecharge: 4,
+  guardStackExponent: 0.6,
 };
 
 export const CAR_KINDS: CarKind[] = [
@@ -280,6 +302,7 @@ export const CAR_KINDS: CarKind[] = [
   "booster",
   "armor",
   "coupler",
+  "guard",
   "gold",
 ];
 

@@ -13,6 +13,7 @@ import {
   moveTrain,
   turnRateOf,
   updateBuffs,
+  updateGuard,
 } from "./train";
 import type {
   BestRun,
@@ -73,6 +74,7 @@ interface SavedRun {
     angle: number;
     speed: number;
     throttle: number;
+    guardCharge?: number;
     cars: Array<Pick<Car, "kind" | "level" | "hp" | "maxHp" | "cooldown">>;
   };
 }
@@ -230,6 +232,7 @@ export class Game implements GameApi {
       );
       player.speed = clamp(finite(saved.player.speed, 0), 0, 500);
       player.throttle = clamp(finite(saved.player.throttle, 1), 0, 1);
+      player.guardCharge = player.buffs.guardRate > 0 ? clamp(finite(saved.player.guardCharge, 0), 0, 1) : 0;
       const wave = Math.max(0, Math.floor(finite(saved.wave, 0)));
       this.snap = {
         ...this.snap,
@@ -273,6 +276,7 @@ export class Game implements GameApi {
         angle: p.angle,
         speed: p.speed,
         throttle: p.throttle,
+        guardCharge: p.guardCharge,
         cars: p.cars.map(({ kind, level, hp, maxHp, cooldown }) => ({ kind, level, hp, maxHp, cooldown })),
       },
     };
@@ -669,6 +673,7 @@ export class Game implements GameApi {
     const cars = train.cars;
     const scale = this.damageScale(train.team);
     updateBuffs(train);
+    updateGuard(train, dt);
     const heal = train.buffs.heal * dt;
     if (heal > 0) for (const c of cars) if (c.hp < c.maxHp) c.hp = Math.min(c.maxHp, c.hp + heal);
     for (let i = 0; i < cars.length; i++) {
@@ -908,10 +913,14 @@ export class Game implements GameApi {
     this.markDirty();
   }
 
-  private damageArea(sourceTeam: Team, x: number, y: number, radius: number, dmg: number): void {
+  private damageArea(sourceTeam: Team, x: number, y: number, radius: number, dmg: number, isMine = false): void {
     const r2 = radius * radius;
     for (const t of this.opponentsOf(sourceTeam)) {
       if (!t.alive) continue;
+      if (isMine && t.guardCharge >= 1 && t.buffs.guardRate > 0 && this.anyCarWithin(t, x, y, r2)) {
+        this.absorbMine(t, x, y);
+        continue;
+      }
       // iterate from the back so a derail caused by a front car doesn't skip cars
       for (let i = t.cars.length - 1; i >= 0; i--) {
         const c = t.cars[i];
@@ -922,6 +931,25 @@ export class Game implements GameApi {
         if (!t.alive) break;
       }
     }
+  }
+
+  private anyCarWithin(t: Train, x: number, y: number, r2: number): boolean {
+    for (const c of t.cars) {
+      const dx = c.x - x;
+      const dy = c.y - y;
+      if (dx * dx + dy * dy <= r2) return true;
+    }
+    return false;
+  }
+
+  /** The train's cattle guard eats a whole mine blast and starts regrowing. */
+  private absorbMine(t: Train, x: number, y: number): void {
+    t.guardCharge = 0;
+    const color = CAR_DEFS.guard.accent;
+    ring(this.particles, x, y, COMBAT.mineRadius + 10, color);
+    burst(this.particles, x, y, color, 14, 200);
+    floatText(this.particles, x, y - 16, "GUARDED", color);
+    if (t.team === "player") this.toast("Cattle guard absorbed a mine");
   }
 
   private updateBullets(dt: number): void {
@@ -1022,7 +1050,7 @@ export class Game implements GameApi {
   }
 
   private explodeMine(m: Mine): void {
-    this.damageArea(m.team, m.x, m.y, COMBAT.mineRadius, m.damage);
+    this.damageArea(m.team, m.x, m.y, COMBAT.mineRadius, m.damage, true);
     burst(this.particles, m.x, m.y, "#ffb067", 16, 230);
     ring(this.particles, m.x, m.y, COMBAT.mineRadius, "#ffb067");
     if (m.team === "enemy") this.shake = Math.max(this.shake, 6);

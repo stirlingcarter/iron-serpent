@@ -174,6 +174,7 @@ function trainBuffSummary(train: Train): string {
     `${Math.round(b.armor * 100)}% damage reduction`,
     `${b.heal.toFixed(1)} HP/s repair`,
   ];
+  if (b.guardRate > 0) parts.push(`cattle guard every ${b.guardTime.toFixed(1)}s`);
   return `Train buffs: ${parts.join(" · ")}`;
 }
 
@@ -205,7 +206,10 @@ export function mountUi(root: HTMLElement, game: GameApi): UiHandle {
   const enemiesStat = makeStat("ENEMIES", "stat--enemies");
   const timeStat = makeStat("TIME", "stat--time");
   const carsStat = makeStat("CARS", "stat--cars");
-  hudSub.append(enemiesStat.root, timeStat.root, carsStat.root);
+  const guardStat = makeStat("GUARD", "stat--guard");
+  const setGuardShown = classCell(guardStat.root, "is-hidden");
+  const setGuardReady = classCell(guardStat.root, "is-ready");
+  hudSub.append(enemiesStat.root, timeStat.root, carsStat.root, guardStat.root);
 
   hud.append(hudMain, hudSub);
 
@@ -644,6 +648,13 @@ export function mountUi(root: HTMLElement, game: GameApi): UiHandle {
     );
     timeStat.set(fmtTime(snap.time));
     carsStat.set(`${cars.length} / ${game.maxCars}`);
+    const hasGuard = player.buffs.guardRate > 0;
+    setGuardShown(!hasGuard);
+    if (hasGuard) {
+      const ready = player.guardCharge >= 1;
+      setGuardReady(ready);
+      guardStat.set(ready ? "READY" : `${Math.floor(player.guardCharge * 100)}%`);
+    }
 
     const loco = cars[0];
     if (loco) {

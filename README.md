@@ -51,6 +51,7 @@ deploys to GitHub Pages.
 | Hull Booster | Raises max HP of every car (locomotive included) |
 | Armor Car | Reduces damage taken by every car |
 | Re-Coupler | If the car directly in front of it is destroyed or stolen, only that car is lost: the car ahead couples straight onto the Re-Coupler and the gap closes instantly. If the Re-Coupler itself dies, normal derail rules apply (unless another Re-Coupler is right behind it) |
+| Cattle Guard | Gives the locomotive a cow-catcher that completely absorbs one mine blast on your train, then regrows. One charge per train at most; more Cattle Guards (or higher levels) only regrow it faster. The HUD shows GUARD READY / recharge %, and the plow glows when charged |
 | Grappler | Hooks a weakened enemy car, tears it off their train (derailing everything behind it) and couples it to yours |
 
 Train-wide buffs are aggregated once per step (never per car pair), so they stay cheap on
@@ -58,6 +59,10 @@ Train-wide buffs are aggregated once per step (never per car pair), so they stay
 effective bonus is `cap * (1 - exp(-sum / cap))`: roughly additive for the first few cars, then
 diminishing toward the cap (`BUFFS` in `src/game/config.ts`: max HP up to x2, damage reduction up
 to 60%). When max HP changes, every car keeps its HP fraction.
+
+Cattle-guard regrow time is `max(guardMinRecharge, guardRecharge / R^guardStackExponent)` where `R`
+sums 1 per Cattle Guard plus 0.3 per extra level: 16 s with one Lv1 car, about 10.6 s with two,
+7 s with four, and never below 4 s. The charge is lost if every Cattle Guard is destroyed or sold.
 
 ### Controls
 

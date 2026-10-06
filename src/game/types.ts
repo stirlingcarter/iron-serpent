@@ -12,7 +12,8 @@ export type CarKind =
   | "sniper"
   | "booster"
   | "armor"
-  | "coupler";
+  | "coupler"
+  | "guard";
 
 /** Continuous steering input: -1 full left, 0 straight, 1 full right. */
 export type Steer = number;
@@ -43,6 +44,9 @@ export interface CarStats {
   /** armor: raw damage-reduction fraction contributed to the whole train (before the cap curve) */
   armor?: number;
   armorPerLevel?: number;
+  /** guard: recharge speed contributed toward the train's single cattle-guard charge */
+  guardRate?: number;
+  guardRatePerLevel?: number;
 }
 
 /** Train-wide aura totals, recomputed in one pass over the cars each step. */
@@ -53,6 +57,10 @@ export interface TrainBuffs {
   armor: number;
   /** HP per second repaired on every car */
   heal: number;
+  /** summed cattle-guard recharge speed; 0 = no guard cars */
+  guardRate: number;
+  /** seconds to regrow the cattle-guard charge (Infinity without guard cars) */
+  guardTime: number;
 }
 
 export interface CarDef {
@@ -131,6 +139,8 @@ export interface Train {
   /** impact speed of the locomotive's latest landing, cleared once effects play */
   landing: number;
   buffs: TrainBuffs;
+  /** cattle-guard charge, 0..1; at 1 the next mine blast on this train is absorbed */
+  guardCharge: number;
 }
 
 /** Ring buffer of locomotive positions used to lay cars out snake-style. */

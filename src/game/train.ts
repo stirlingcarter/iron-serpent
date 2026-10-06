@@ -64,7 +64,8 @@ export function createTrain(
     smoke: 0,
     grade: 0,
     landing: 0,
-    buffs: { hpMult: 1, armor: 0, heal: 0 },
+    buffs: { hpMult: 1, armor: 0, heal: 0, guardRate: 0, guardTime: Infinity },
+    guardCharge: 0,
   };
   seedTrail(train.trail, x, y, angle, trailLength);
   train.odometer = trailLength;
@@ -81,6 +82,16 @@ export function stackCapped(sum: number, cap: number): number {
 
 function levelStat(base: number | undefined, perLevel: number | undefined, level: number): number {
   return (base ?? 0) + (perLevel ?? 0) * (level - 1);
+}
+
+/** Regrow the train's single cattle-guard charge; it is lost when no guard cars remain. */
+export function updateGuard(train: Train, dt: number): void {
+  const b = train.buffs;
+  if (!(b.guardRate > 0)) {
+    train.guardCharge = 0;
+    return;
+  }
+  if (train.guardCharge < 1) train.guardCharge = Math.min(1, train.guardCharge + dt / b.guardTime);
 }
 
 /** Rescale a car's max HP to `mult`, keeping its HP fraction. */
@@ -102,6 +113,7 @@ export function updateBuffs(train: Train): void {
   let hp = 0;
   let armor = 0;
   let heal = 0;
+  let guard = 0;
   for (let i = 1; i < cars.length; i++) {
     const c = cars[i];
     switch (c.kind) {
@@ -120,6 +132,11 @@ export function updateBuffs(train: Train): void {
         heal += levelStat(s.healPerSec, s.healPerLevel, c.level);
         break;
       }
+      case "guard": {
+        const s = CAR_DEFS.guard.stats;
+        guard += levelStat(s.guardRate, s.guardRatePerLevel, c.level);
+        break;
+      }
       default:
         break;
     }
@@ -128,6 +145,11 @@ export function updateBuffs(train: Train): void {
   b.hpMult = 1 + stackCapped(hp, BUFFS.hpBoostCap);
   b.armor = stackCapped(armor, BUFFS.armorCap);
   b.heal = heal;
+  b.guardRate = guard;
+  b.guardTime =
+    guard > 0
+      ? Math.max(BUFFS.guardMinRecharge, BUFFS.guardRecharge / Math.pow(guard, BUFFS.guardStackExponent))
+      : Infinity;
   for (let i = 0; i < cars.length; i++) {
     if (cars[i].hpMult !== b.hpMult) applyHpMult(cars[i], b.hpMult);
   }

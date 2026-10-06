@@ -142,7 +142,7 @@ export class TerrainBaker {
       const nx = -gx * 1.6;
       const ny = -gy * 1.6;
       const lit = (nx * LX + ny * LY + LZ) / Math.sqrt(nx * nx + ny * ny + 1);
-      let k = Math.max(0.35, Math.min(1.35, 0.62 + 0.75 * lit));
+      let k = Math.max(0.5, Math.min(1.35, 0.62 + 0.75 * lit));
       // contour lines on gentle ground: distance to the nearest isoline in px
       if (slope > 0.02 && slope < 1.2) {
         const f = h / CONTOUR;

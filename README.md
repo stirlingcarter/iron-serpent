@@ -13,6 +13,15 @@ deploys to GitHub Pages.
 - Your cars follow the locomotive's exact path, snake-style.
 - Solid arena walls guide a train into the wall's tangent, so it can ride along the fence
   without taking damage or getting stuck.
+- The arena is procedurally generated terrain (deterministic per `TERRAIN.seed`): rolling hills,
+  mountain ranges, valleys, terraced mesas with cliff faces, and winding ravines. The spawn area
+  is always flat and open.
+  - Each car feels the slope under its own bogies; their weighted average sets the train's
+    grade. Climbing is slow, descending is fast, and on a crest the cars still climbing hold the
+    train back while those past it pull it forward.
+  - Uphill cliff faces act like the fence and guide the train along them. Run over a downhill
+    cliff or ravine edge and the cars fall (no steering mid-air) and land; nothing takes damage.
+    Very steep side slopes make the locomotive slide downhill.
 - Cows wander the grass and flee when a train comes close.
 - Every car has HP. When a car is destroyed, **everything behind it derails**. You lose when
   the locomotive dies.
@@ -89,6 +98,7 @@ requires GitHub Pro, Team or Enterprise; on a free plan, make the repo public to
 src/
   main.ts          boot, fixed-timestep loop
   render.ts        Canvas 2D renderer
+  terrainRender.ts baked hill-shaded terrain texture
   ui.ts            HUD, controls, overlays, shop (DOM)
   input.ts         keyboard bindings
   game/
@@ -96,6 +106,8 @@ src/
     config.ts      tuning: cars, movement, economy, waves
     game.ts        simulation: combat, derail rules, waves, economy
     train.ts       train movement and snake-style car layout
+    terrain.ts     procedural heightfield generation and sampling
+    terrainPhysics.ts  slope speed, cliff guidance, falling
     trail.ts       locomotive path ring buffer
     enemies.ts     wave generation and enemy AI
     cows.ts        lightweight ambient cow movement

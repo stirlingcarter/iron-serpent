@@ -24,7 +24,11 @@ deploys to GitHub Pages.
     Very steep side slopes make the locomotive slide downhill.
 - Cows wander the grass and flee when a train comes close.
 - Every car has HP. When a car is destroyed, **everything behind it derails**, unless a
-  Re-Coupler is coupled directly behind it. You lose when the locomotive dies.
+  Re-Coupler further back catches the break: cars between the hit and that Re-Coupler are
+  lost, then the Re-Coupler snaps forward onto the next surviving car and keeps its segment.
+  You lose when the locomotive dies.
+- Every non-engine car drags top speed a little (`MOVEMENT.carDrag`); locomotives and Engine
+  cars are exempt, so investing in engines pays for a longer train.
 - Enemy trains arrive in **waves** (usually one train, sometimes two or three), built from the
   same cars you use, with tougher loadouts as waves go on. The next wave rolls in seconds after
   the last one is destroyed; only death shows a screen.
@@ -40,7 +44,7 @@ deploys to GitHub Pages.
 
 | Car | What it does |
 | --- | --- |
-| Engine | Extra thrust; more engines, faster train |
+| Engine | Extra thrust; more engines, faster train. Cargo cars drag speed; engines do not |
 | Turret | Auto-targets and shoots the nearest enemy car |
 | Rocket Car | Slow rockets with splash damage; long cooldown. Bursts over the predicted aim point if it touches nothing on the way |
 | Sniper Car | Very long range, heavy single hits, slow fire. Targets the enemy car with the most HP left in range (locomotives count double) |
@@ -50,7 +54,7 @@ deploys to GitHub Pages.
 | Repair Car | Slowly heals every car on the train |
 | Hull Booster | Raises max HP of every car (locomotive included) |
 | Armor Car | Reduces damage taken by every car |
-| Re-Coupler | If the car directly in front of it is destroyed or stolen, only that car is lost: the car ahead couples straight onto the Re-Coupler and the gap closes instantly. If the Re-Coupler itself dies, normal derail rules apply (unless another Re-Coupler is right behind it) |
+| Re-Coupler | Segment car: when anything ahead is destroyed or stolen, cars between the break and this Re-Coupler are lost, then it snaps forward onto the next survivor and everything behind it stays coupled. If the Re-Coupler itself dies, normal derail rules apply (unless another Re-Coupler is further back) |
 | Cattle Guard | Gives the locomotive a cow-catcher that completely absorbs one mine blast on your train, then regrows. One charge per train at most; more Cattle Guards (or higher levels) only regrow it faster. The HUD shows GUARD READY / recharge %, and the plow glows when charged |
 | Grappler | Hooks a weakened enemy car, tears it off their train (derailing everything behind it) and couples it to yours |
 

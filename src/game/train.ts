@@ -157,22 +157,26 @@ export function updateBuffs(train: Train): void {
 
 export function speedBonus(train: Train): number {
   let bonus = 0;
+  let drag = 0;
   for (let i = 1; i < train.cars.length; i++) {
     const c = train.cars[i];
     if (c.kind === "engine") {
       const s = CAR_DEFS.engine.stats;
       bonus += (s.speedBonus ?? 0) + (s.speedBonusPerLevel ?? 0) * (c.level - 1);
+    } else {
+      // cargo weight: every non-engine car slows the train a little
+      drag += MOVEMENT.carDrag;
     }
   }
-  // the locomotive's own level adds a little thrust too
+  // the locomotive's own level adds a little thrust too (and never counts as drag)
   bonus += (train.cars[0]?.level ?? 1) * 4 - 4;
-  return bonus;
+  return bonus - drag;
 }
 
 export function targetSpeed(train: Train): number {
   const t: Throttle = Math.max(0, Math.min(1, train.throttle));
-  const max = (MOVEMENT.baseSpeed + speedBonus(train)) * MOVEMENT.fastMultiplier;
-  return max * t;
+  const powered = Math.max(MOVEMENT.minPoweredSpeed, MOVEMENT.baseSpeed + speedBonus(train));
+  return powered * MOVEMENT.fastMultiplier * t;
 }
 
 export function goldBonus(train: Train): number {

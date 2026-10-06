@@ -874,7 +874,11 @@ export class Game implements GameApi {
   /** Tear a car off `victim` (everything behind it derails) and couple it to `captor`. */
   private captureCar(captor: Train, victim: Train, index: number): void {
     const car = victim.cars[index];
-    if (this.recouplerBehind(victim, index)) {
+    const couplerIdx = this.findRecouplerBehind(victim, index);
+    if (couplerIdx >= 0) {
+      // Cars between the steal and the Re-Coupler derail; the segment snaps forward.
+      const gap = couplerIdx - index - 1;
+      if (gap > 0) this.discardCars(victim, index + 1, couplerIdx);
       victim.cars.splice(index, 1);
       closeGap(victim, index);
     } else {
@@ -1144,42 +1148,81 @@ export class Game implements GameApi {
     }
   }
 
-  /** True when the car behind cars[index] is a Re-Coupler that can bridge its loss. */
-  private recouplerBehind(train: Train, index: number): boolean {
-    return index > 0 && train.cars[index + 1]?.kind === "coupler";
+  /** Index of the first Re-Coupler strictly behind cars[index], or -1. */
+  private findRecouplerBehind(train: Train, index: number): number {
+    const cars = train.cars;
+    for (let i = index + 1; i < cars.length; i++) {
+      if (cars[i].kind === "coupler") return i;
+    }
+    return -1;
   }
 
   /**
-   * A car died. Normally it and everything behind it derail; a Re-Coupler
-   * directly behind it instead couples the rest of the train to the car in front.
+   * A car died. Normally it and everything behind it derail. A Re-Coupler
+   * anywhere behind the break instead eats the cars up to itself, then snaps
+   * forward onto the next surviving car so its segment stays coupled.
+   * Locomotive death (index 0) always ends the train.
    */
   private destroyFrom(train: Train, index: number): void {
-    if (this.recouplerBehind(train, index)) this.recouple(train, index);
-    else this.derailFrom(train, index);
+    if (index > 0) {
+      const couplerIdx = this.findRecouplerBehind(train, index);
+      if (couplerIdx >= 0) {
+        this.recouple(train, index, couplerIdx);
+        return;
+      }
+    }
+    this.derailFrom(train, index);
   }
 
-  /** Remove only cars[index] and close the gap so nothing behind it derails. */
-  private recouple(train: Train, index: number): void {
+  /**
+   * Destroy cars[from..end) for FX / score / loss counts without shortening the
+   * array; caller splices afterward. Used when a Re-Coupler catches a derail.
+   */
+  private discardCars(train: Train, from: number, end: number): void {
     const cars = train.cars;
-    const c = cars[index];
-    const def = CAR_DEFS[c.kind];
-    burst(this.particles, c.x, c.y, def.accent, 14, 190);
-    burst(this.particles, c.x, c.y, "#ffb067", 8, 140);
-    c.grappleTarget = null;
-    if (train.team === "enemy") {
-      this.snap.stats.kills++;
-      this.addGold(this.killReward(false), c.x, c.y);
-    } else {
-      this.snap.stats.carsLost++;
-      this.shake = Math.max(this.shake, 4);
-      this.toast(`Lost a ${def.name}: Re-Coupler held the train together`);
+    const isEnemy = train.team === "enemy";
+    let gold = 0;
+    let x = 0;
+    let y = 0;
+    for (let i = from; i < end; i++) {
+      const c = cars[i];
+      const def = CAR_DEFS[c.kind];
+      burst(this.particles, c.x, c.y, def.accent, 14, 190);
+      burst(this.particles, c.x, c.y, "#ffb067", 8, 140);
+      c.grappleTarget = null;
+      x = c.x;
+      y = c.y;
+      if (isEnemy) {
+        gold += this.killReward(false);
+        this.snap.stats.kills++;
+      } else {
+        this.snap.stats.carsLost++;
+      }
     }
-    cars.splice(index, 1);
+    if (isEnemy && gold > 0) this.addGold(gold, x, y);
+    cars.splice(from, end - from);
+  }
+
+  /**
+   * Destroy cars[index..couplerIdx), then close the gap so the Re-Coupler and
+   * everything behind it attach to the next surviving car ahead.
+   */
+  private recouple(train: Train, index: number, couplerIdx: number): void {
+    const lost = couplerIdx - index;
+    this.discardCars(train, index, couplerIdx);
     closeGap(train, index);
-    const joint = cars[index];
+    const joint = train.cars[index];
     if (joint) {
       ring(this.particles, joint.x, joint.y, 26, CAR_DEFS.coupler.accent);
       floatText(this.particles, joint.x, joint.y - 16, "re-coupled", CAR_DEFS.coupler.accent);
+    }
+    if (train.team === "player") {
+      this.shake = Math.max(this.shake, lost > 1 ? 6 : 4);
+      this.toast(
+        lost === 1
+          ? "Lost a car: Re-Coupler held the train together"
+          : `Lost ${lost} cars: Re-Coupler saved the segment behind`,
+      );
     }
     this.markDirty();
   }

@@ -16,6 +16,13 @@ export const MOVEMENT = {
   /** px/s at the old cruise setting; full analog throttle is faster */
   baseSpeed: 125,
   fastMultiplier: 1.6,
+  /**
+   * px/s deducted from top speed per non-engine car (locomotive and engine cars
+   * exempt). Extra engines have to pay for a long cargo string.
+   */
+  carDrag: 3.5,
+  /** floor on (baseSpeed + bonuses) before the fast multiplier, so drag can't stall a train */
+  minPoweredSpeed: 48,
   /** rad/s at full steering input */
   turnRate: 2.15,
   /** px turning radius held above stock full speed, so extra engines don't widen turns much */
@@ -92,7 +99,8 @@ export const CAR_DEFS: Record<CarKind, CarDef> = {
     kind: "engine",
     name: "Engine",
     glyph: "E",
-    description: "Adds thrust. More engines, faster train. Sturdy.",
+    description:
+      "Adds thrust. Every other car drags the train a little; engines do not. More engines, faster train. Sturdy.",
     color: "#c0392b",
     accent: "#ff7b6b",
     baseCost: 120,
@@ -245,7 +253,7 @@ export const CAR_DEFS: Record<CarKind, CarDef> = {
     name: "Re-Coupler",
     glyph: "&",
     description:
-      "If the car directly in front of it is destroyed (or stolen), only that car is lost: the train closes the gap and nothing behind derails. If the Re-Coupler itself dies, normal rules apply.",
+      "Segment car: when anything ahead of it is destroyed or stolen, cars between the break and this Re-Coupler are lost, then it snaps forward onto the next surviving car and everything behind it stays coupled. If the Re-Coupler itself dies, normal derail rules apply (unless another Re-Coupler is further back).",
     color: "#6e4b2a",
     accent: "#f0c674",
     baseCost: 150,

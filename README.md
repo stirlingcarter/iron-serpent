@@ -48,7 +48,15 @@ deploys to GitHub Pages.
 | Mine Layer | Drops mines behind you that enemies detonate |
 | Vault | Increases gold per kill |
 | Repair Car | Slowly heals every car on the train |
+| Hull Booster | Raises max HP of every car (locomotive included) |
+| Armor Car | Reduces damage taken by every car |
 | Grappler | Hooks a weakened enemy car, tears it off their train (derailing everything behind it) and couples it to yours |
+
+Train-wide buffs are aggregated once per step (never per car pair), so they stay cheap on
+1,000-car trains. Hull Boosters and Armor Cars each add a raw value to a per-train sum, and the
+effective bonus is `cap * (1 - exp(-sum / cap))`: roughly additive for the first few cars, then
+diminishing toward the cap (`BUFFS` in `src/game/config.ts`: max HP up to x2, damage reduction up
+to 60%). When max HP changes, every car keeps its HP fraction.
 
 ### Controls
 

@@ -214,6 +214,44 @@ export const CAR_DEFS: Record<CarKind, CarDef> = {
     maxLevel: 6,
     stats: { damage: 90, damagePerLevel: 32, cooldown: 3.4, range: 760, rangePerLevel: 40 },
   },
+  booster: {
+    kind: "booster",
+    name: "Hull Booster",
+    glyph: "H",
+    description: "Raises max HP of every car on the train, locomotive included. Stacks with diminishing returns up to double HP.",
+    color: "#a23b72",
+    accent: "#ff9ecf",
+    baseCost: 160,
+    baseHp: 150,
+    hpPerLevel: 30,
+    maxLevel: 5,
+    stats: { hpBoost: 0.12, hpBoostPerLevel: 0.05 },
+  },
+  armor: {
+    kind: "armor",
+    name: "Armor Car",
+    glyph: "A",
+    description: "Cuts damage taken by every car on the train. Stacks with diminishing returns up to 60% reduction.",
+    color: "#5d6d7e",
+    accent: "#d5dde6",
+    baseCost: 175,
+    baseHp: 210,
+    hpPerLevel: 40,
+    maxLevel: 5,
+    stats: { armor: 0.06, armorPerLevel: 0.025 },
+  },
+};
+
+/**
+ * Train-wide aura stacking. Each buff car adds its raw value to a per-train
+ * sum; the effective bonus is `cap * (1 - exp(-sum / cap))`, which is close to
+ * the plain sum for a few cars and approaches `cap` asymptotically.
+ */
+export const BUFFS = {
+  /** max-HP multiplier tops out at 1 + hpBoostCap */
+  hpBoostCap: 1.0,
+  /** damage reduction tops out at this fraction */
+  armorCap: 0.6,
 };
 
 export const CAR_KINDS: CarKind[] = [
@@ -225,6 +263,8 @@ export const CAR_KINDS: CarKind[] = [
   "grapple",
   "engine",
   "health",
+  "booster",
+  "armor",
   "gold",
 ];
 

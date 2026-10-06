@@ -1,4 +1,4 @@
-import type { Car, CarKind, GameApi, Phase } from "./game/types";
+import type { Car, CarKind, GameApi, Phase, Train } from "./game/types";
 import { CAR_DEFS, CAR_KINDS, WAVES } from "./game/config";
 
 export interface UiHandle {
@@ -165,6 +165,16 @@ function fmtTime(seconds: number): string {
 
 function fmtGold(value: number): string {
   return `${GOLD} ${Math.floor(value)}`;
+}
+
+function trainBuffSummary(train: Train): string {
+  const b = train.buffs;
+  const parts = [
+    `+${Math.round((b.hpMult - 1) * 100)}% max HP`,
+    `${Math.round(b.armor * 100)}% damage reduction`,
+    `${b.heal.toFixed(1)} HP/s repair`,
+  ];
+  return `Train buffs: ${parts.join(" · ")}`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -398,6 +408,8 @@ export function mountUi(root: HTMLElement, game: GameApi): UiHandle {
   const setTrainCount = textCell(trainCount);
   trainHead.append(el("h2", "section__title", "YOUR TRAIN"), trainCount);
   const trainList = el("ol", "train");
+  const buffLine = el("p", "section__hint section__hint--buffs");
+  const setBuffLine = textCell(buffLine);
   trainSection.append(
     trainHead,
     el(
@@ -405,6 +417,7 @@ export function mountUi(root: HTMLElement, game: GameApi): UiHandle {
       "section__hint",
       "Front to back. A destroyed car derails every car behind it, so keep what you cannot afford to lose near the front.",
     ),
+    buffLine,
     trainList,
   );
 
@@ -550,6 +563,7 @@ export function mountUi(root: HTMLElement, game: GameApi): UiHandle {
 
     setShopGold(fmtGold(gold));
     setTrainCount(`${cars.length} / ${game.maxCars} cars`);
+    setBuffLine(trainBuffSummary(snap.player));
     trainList.replaceChildren(...cars.map((car, i) => carRow(car, i, cars.length)));
     fullHint.hidden = !full;
     buyGrid.replaceChildren(...CAR_KINDS.map((kind) => buyCard(kind, full, gold)));

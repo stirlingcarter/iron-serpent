@@ -1,4 +1,4 @@
-import { CAR_DEFS, COMBAT, MOVEMENT, TERRAIN, WORLD } from "./config";
+import { BUFFS, CAR_DEFS, COMBAT, MOVEMENT, TERRAIN, WORLD } from "./config";
 import { gradeFactor, isAirborne, terrainStep, updateTerrain } from "./terrainPhysics";
 import { createTrail, pushSample, sampleTrail, seedTrail } from "./trail";
 import type { AiState, Car, CarKind, Steer, Team, Throttle, Train } from "./types";
@@ -19,6 +19,8 @@ export function createCar(kind: CarKind, level = 1, isLoco = false, hpScale = 1)
     level,
     hp: maxHp,
     maxHp,
+    baseMaxHp: maxHp,
+    hpMult: 1,
     x: 0,
     y: 0,
     angle: 0,
@@ -61,11 +63,73 @@ export function createTrain(
     smoke: 0,
     grade: 0,
     landing: 0,
+    buffs: { hpMult: 1, armor: 0, heal: 0 },
   };
   seedTrail(train.trail, x, y, angle, trailLength);
   train.odometer = trailLength;
   layoutCars(train);
+  updateBuffs(train);
   return train;
+}
+
+/** Diminishing-returns stacking: ~sum for small sums, approaches `cap`. */
+export function stackCapped(sum: number, cap: number): number {
+  if (!(sum > 0) || !(cap > 0)) return 0;
+  return cap * (1 - Math.exp(-sum / cap));
+}
+
+function levelStat(base: number | undefined, perLevel: number | undefined, level: number): number {
+  return (base ?? 0) + (perLevel ?? 0) * (level - 1);
+}
+
+/** Rescale a car's max HP to `mult`, keeping its HP fraction. */
+export function applyHpMult(car: Car, mult: number): void {
+  const max = Math.max(1, Math.round(car.baseMaxHp * mult));
+  if (max !== car.maxHp) {
+    if (car.maxHp > 0 && Number.isFinite(car.hp)) car.hp = (car.hp * max) / car.maxHp;
+    car.maxHp = max;
+  }
+  car.hpMult = mult;
+}
+
+/**
+ * Recompute the train's aura totals in a single pass (O(cars), never per car
+ * pair), and bring any car whose max HP is stale up to the current multiplier.
+ */
+export function updateBuffs(train: Train): void {
+  const cars = train.cars;
+  let hp = 0;
+  let armor = 0;
+  let heal = 0;
+  for (let i = 1; i < cars.length; i++) {
+    const c = cars[i];
+    switch (c.kind) {
+      case "booster": {
+        const s = CAR_DEFS.booster.stats;
+        hp += levelStat(s.hpBoost, s.hpBoostPerLevel, c.level);
+        break;
+      }
+      case "armor": {
+        const s = CAR_DEFS.armor.stats;
+        armor += levelStat(s.armor, s.armorPerLevel, c.level);
+        break;
+      }
+      case "health": {
+        const s = CAR_DEFS.health.stats;
+        heal += levelStat(s.healPerSec, s.healPerLevel, c.level);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+  const b = train.buffs;
+  b.hpMult = 1 + stackCapped(hp, BUFFS.hpBoostCap);
+  b.armor = stackCapped(armor, BUFFS.armorCap);
+  b.heal = heal;
+  for (let i = 0; i < cars.length; i++) {
+    if (cars[i].hpMult !== b.hpMult) applyHpMult(cars[i], b.hpMult);
+  }
 }
 
 export function speedBonus(train: Train): number {

@@ -414,6 +414,35 @@ export class Renderer {
         ctx.fill();
         break;
       }
+      case "booster": {
+        // glowing reinforcement ribs that pulse together
+        const pulse = 0.55 + 0.35 * Math.sin(this.frame * 0.08);
+        ctx.globalAlpha = pulse;
+        ctx.fillStyle = def.accent;
+        for (const rx of [-len / 2 + 5, -1.5, len / 2 - 8]) ctx.fillRect(rx, -hw + 1.5, 3, CAR_W - 3);
+        ctx.globalAlpha = 1;
+        break;
+      }
+      case "armor": {
+        // inset plate with corner rivets
+        ctx.strokeStyle = "#2c3540";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-len / 2 + 3, -hw + 3, len - 6, CAR_W - 6);
+        ctx.fillStyle = def.accent;
+        const px = len / 2 - 5;
+        const py = hw - 5;
+        for (const [rx, ry] of [
+          [-px, -py],
+          [px, -py],
+          [-px, py],
+          [px, py],
+        ]) {
+          ctx.beginPath();
+          ctx.arc(rx, ry, 1.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        break;
+      }
       default:
         break;
     }

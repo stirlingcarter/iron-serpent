@@ -2,7 +2,17 @@ import { CAR_DEFS, CAR_KINDS, COMBAT, ECONOMY, TERRAIN, WAVES, WORLD, cooldownFo
 import { createCows, updateCows } from "./cows";
 import { burst, floatText, ring, smokePuff, updateParticles } from "./effects";
 import { spawnWave, updateAi } from "./enemies";
-import { carHpForLevel, clampSteer, createCar, createTrain, goldBonus, layoutCars, moveTrain, turnRateOf } from "./train";
+import {
+  carHpForLevel,
+  clampSteer,
+  createCar,
+  createTrain,
+  goldBonus,
+  layoutCars,
+  moveTrain,
+  turnRateOf,
+  updateBuffs,
+} from "./train";
 import type {
   BestRun,
   Bullet,
@@ -199,8 +209,11 @@ export class Game implements GameApi {
         const rawLevel = item && typeof item === "object" ? item.level : 1;
         const level = clamp(Math.floor(finite(rawLevel, 1)), 1, CAR_DEFS[kind].maxLevel);
         const car = createCar(kind, level, index === 0);
-        const rawHp = item && typeof item === "object" ? item.hp : car.maxHp;
-        car.hp = clamp(finite(rawHp, car.maxHp), 1, car.maxHp);
+        // Saved HP is relative to the buffed max; restore the fraction so train buffs reapply cleanly.
+        const rawHp = item && typeof item === "object" ? finite(item.hp, NaN) : NaN;
+        const rawMax = item && typeof item === "object" ? finite(item.maxHp, NaN) : NaN;
+        const fraction = rawMax > 0 && Number.isFinite(rawHp) ? rawHp / rawMax : 1;
+        car.hp = clamp(fraction * car.maxHp, 1, car.maxHp);
         const rawCooldown = item && typeof item === "object" ? item.cooldown : 0;
         car.cooldown = clamp(finite(rawCooldown, 0), 0, 60);
         return car;
@@ -375,6 +388,7 @@ export class Game implements GameApi {
     this.snap.gold -= cost;
     this.snap.player.cars.push(createCar(kind, 1));
     layoutCars(this.snap.player);
+    updateBuffs(this.snap.player);
     this.markDirty();
     return true;
   }
@@ -398,9 +412,11 @@ export class Game implements GameApi {
     if (!car || !this.canUpgrade(car)) return false;
     this.snap.gold -= this.upgradeCost(car);
     car.level += 1;
-    const newMax = carHpForLevel(car.kind, car.level, index === 0);
-    car.hp += newMax - car.maxHp;
-    car.maxHp = newMax;
+    const oldMax = car.maxHp;
+    car.baseMaxHp = carHpForLevel(car.kind, car.level, index === 0);
+    car.maxHp = Math.max(1, Math.round(car.baseMaxHp * car.hpMult));
+    car.hp += car.maxHp - oldMax;
+    updateBuffs(this.snap.player);
     this.markDirty();
     return true;
   }
@@ -420,6 +436,7 @@ export class Game implements GameApi {
     const [car] = this.snap.player.cars.splice(index, 1);
     this.snap.gold += this.sellValue(car);
     layoutCars(this.snap.player);
+    updateBuffs(this.snap.player);
     this.markDirty();
     return true;
   }
@@ -650,6 +667,9 @@ export class Game implements GameApi {
   private updateCars(train: Train, dt: number): void {
     const cars = train.cars;
     const scale = this.damageScale(train.team);
+    updateBuffs(train);
+    const heal = train.buffs.heal * dt;
+    if (heal > 0) for (const c of cars) if (c.hp < c.maxHp) c.hp = Math.min(c.maxHp, c.hp + heal);
     for (let i = 0; i < cars.length; i++) {
       const car = cars[i];
       if (car.flash > 0) car.flash -= dt;
@@ -760,11 +780,6 @@ export class Game implements GameApi {
           car.cooldown = cooldownForLevel(s.cooldown ?? 1.5, car.level);
           break;
         }
-        case "health": {
-          const heal = ((s.healPerSec ?? 3) + (s.healPerLevel ?? 0) * (car.level - 1)) * dt;
-          for (const c of cars) if (c.hp < c.maxHp) c.hp = Math.min(c.maxHp, c.hp + heal);
-          break;
-        }
         case "grapple": {
           this.updateGrapple(train, car, dt);
           break;
@@ -869,7 +884,9 @@ export class Game implements GameApi {
       return;
     }
     car.grappleTarget = null;
-    car.maxHp = carHpForLevel(car.kind, car.level, false);
+    car.baseMaxHp = carHpForLevel(car.kind, car.level, false);
+    car.maxHp = car.baseMaxHp;
+    car.hpMult = 1;
     car.hp = Math.max(1, Math.round(car.maxHp * 0.6));
     car.cooldown = 0.5;
     captor.cars.push(car);
@@ -1086,7 +1103,7 @@ export class Game implements GameApi {
   damageCar(train: Train, index: number, amount: number): void {
     const car = train.cars[index];
     if (!car || !train.alive) return;
-    car.hp -= amount;
+    car.hp -= amount * (1 - train.buffs.armor);
     car.flash = 0.12;
     if (car.hp <= 0) {
       this.destroyFrom(train, index);

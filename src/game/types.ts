@@ -9,7 +9,9 @@ export type CarKind =
   | "health"
   | "grapple"
   | "rocket"
-  | "sniper";
+  | "sniper"
+  | "booster"
+  | "armor";
 
 /** Continuous steering input: -1 full left, 0 straight, 1 full right. */
 export type Steer = number;
@@ -34,6 +36,22 @@ export interface CarStats {
   /** rocket: blast radius of each warhead */
   splashRadius?: number;
   splashRadiusPerLevel?: number;
+  /** booster: raw max-HP bonus fraction contributed to the whole train (before the cap curve) */
+  hpBoost?: number;
+  hpBoostPerLevel?: number;
+  /** armor: raw damage-reduction fraction contributed to the whole train (before the cap curve) */
+  armor?: number;
+  armorPerLevel?: number;
+}
+
+/** Train-wide aura totals, recomputed in one pass over the cars each step. */
+export interface TrainBuffs {
+  /** max-HP multiplier applied to every car */
+  hpMult: number;
+  /** fraction of incoming damage removed, 0..BUFFS.armorCap */
+  armor: number;
+  /** HP per second repaired on every car */
+  heal: number;
 }
 
 export interface CarDef {
@@ -55,7 +73,12 @@ export interface Car {
   kind: CarKind;
   level: number;
   hp: number;
+  /** baseMaxHp scaled by the train's HP multiplier */
   maxHp: number;
+  /** max HP before train buffs */
+  baseMaxHp: number;
+  /** the HP multiplier maxHp currently reflects */
+  hpMult: number;
   x: number;
   y: number;
   angle: number;
@@ -106,6 +129,7 @@ export interface Train {
   grade: number;
   /** impact speed of the locomotive's latest landing, cleared once effects play */
   landing: number;
+  buffs: TrainBuffs;
 }
 
 /** Ring buffer of locomotive positions used to lay cars out snake-style. */

@@ -93,9 +93,10 @@ export interface Train {
 
 /** Ring buffer of locomotive positions used to lay cars out snake-style. */
 export interface Trail {
-  xs: Float32Array;
-  ys: Float32Array;
-  ss: Float32Array;
+  /** Float64: `ss` holds the unbounded odometer, which outgrows float32 precision within minutes. */
+  xs: Float64Array;
+  ys: Float64Array;
+  ss: Float64Array;
   /** index of the most recent sample */
   head: number;
   /** number of valid samples */

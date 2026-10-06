@@ -12,9 +12,9 @@ export function trailCapacityForCars(carCount: number): number {
 
 export function createTrail(capacity = trailCapacityForCars(WORLD.maxCars)): Trail {
   return {
-    xs: new Float32Array(capacity),
-    ys: new Float32Array(capacity),
-    ss: new Float32Array(capacity),
+    xs: new Float64Array(capacity),
+    ys: new Float64Array(capacity),
+    ss: new Float64Array(capacity),
     head: -1,
     count: 0,
   };

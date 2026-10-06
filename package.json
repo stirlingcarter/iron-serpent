@@ -1,0 +1,19 @@
+{
+  "name": "railgun",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite --port 4517 --host",
+    "build": "tsc && vite build",
+    "preview": "vite preview --port 4518 --host",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}

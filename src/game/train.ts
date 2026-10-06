@@ -91,6 +91,9 @@ export function goldBonus(train: Train): number {
 }
 
 const sampleOut = { x: 0, y: 0, angle: 0 };
+const frontOut = { x: 0, y: 0, angle: 0 };
+const rearOut = { x: 0, y: 0, angle: 0 };
+const BOGIE_HALF = WORLD.carLength / 2;
 
 export function layoutCars(train: Train): void {
   const cars = train.cars;
@@ -98,13 +101,20 @@ export function layoutCars(train: Train): void {
   cars[0].x = train.x;
   cars[0].y = train.y;
   cars[0].angle = train.angle;
+  const trail = train.trail;
   for (let i = 1; i < cars.length; i++) {
+    const car = cars[i];
     const s = train.odometer - i * WORLD.carSpacing;
-    sampleOut.angle = cars[i].angle;
-    sampleTrail(train.trail, s, sampleOut);
-    cars[i].x = sampleOut.x;
-    cars[i].y = sampleOut.y;
-    cars[i].angle = sampleOut.angle;
+    sampleTrail(trail, s, sampleOut);
+    car.x = sampleOut.x;
+    car.y = sampleOut.y;
+    // Heading follows the bogie chord; a single trail segment's direction
+    // changes in discrete steps on curves.
+    sampleTrail(trail, s + BOGIE_HALF, frontOut);
+    sampleTrail(trail, s - BOGIE_HALF, rearOut);
+    const hx = frontOut.x - rearOut.x;
+    const hy = frontOut.y - rearOut.y;
+    car.angle = hx * hx + hy * hy > 1e-6 ? Math.atan2(hy, hx) : sampleOut.angle;
   }
 }
 

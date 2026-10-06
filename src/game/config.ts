@@ -171,3 +171,53 @@ export const CAR_KINDS: CarKind[] = ["gun", "aoe", "trap", "grapple", "engine", 
 export function cooldownForLevel(base: number, level: number): number {
   return base * Math.pow(0.92, level - 1);
 }
+
+/**
+ * Terrain tuning. Heights are in world px, so a slope of 1 rises one px per px
+ * travelled (45 degrees).
+ */
+export const TERRAIN = {
+  /** change to get a different (still deterministic) map */
+  seed: 1337,
+  /** heightfield sample spacing in px */
+  cell: 8,
+  baseHeight: 120,
+  hillScale: 950,
+  hillAmp: 85,
+  regionScale: 1500,
+  mountainScale: 820,
+  mountainAmp: 300,
+  valleyDepth: 70,
+  cliffScale: 1100,
+  /** height of one terrace (mesa) step */
+  terraceStep: 55,
+  /** fraction of each terrace step spent rising; smaller = sheerer cliffs */
+  terraceRise: 0.12,
+  ravineScale: 900,
+  /** ravine half-width in noise units */
+  ravineWidth: 0.15,
+  ravineDepth: 95,
+  /** flat, open ground around the spawn point */
+  spawnRadius: 360,
+  spawnBlend: 300,
+
+  /** grade multiplier: target speed is scaled by 1 - gradeEffect * mean slope */
+  gradeEffect: 1.9,
+  minGradeFactor: 0.22,
+  maxGradeFactor: 1.85,
+  /** px/s^2 used when a train is above its grade-adjusted target speed */
+  gradeDecel: 150,
+  /** locomotive counts this many times in the train's mean slope */
+  locoGradeWeight: 2,
+  /** uphill rise per px beyond which ground acts like a wall */
+  cliffSlope: 1.6,
+  /** ground falling away faster than this per px of travel launches a car */
+  fallSlope: 1.5,
+  gravity: 1300,
+  /** cross-slope steeper than this makes the locomotive slide sideways */
+  slideSlope: 0.75,
+  /** px/s of sideways slide per unit of cross-slope beyond slideSlope */
+  slideRate: 70,
+  /** landing impact (px/s) that costs speed and shakes the camera */
+  hardLanding: 260,
+};

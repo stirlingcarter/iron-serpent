@@ -18,6 +18,14 @@ export const MOVEMENT = {
   fastMultiplier: 1.6,
   /** rad/s at full steering input */
   turnRate: 2.15,
+  /** px turning radius held above stock full speed, so extra engines don't widen turns much */
+  turnRadius: 104,
+  /** speed at which turnRadius applies unwidened (stock full throttle) */
+  turnRadiusRefSpeed: 200,
+  /** radius grows by this fraction per extra turnRadiusRefSpeed of speed */
+  turnRadiusWiden: 0.15,
+  /** hard cap on angular velocity, rad/s */
+  maxTurnRate: 5,
   accel: 260,
   brake: 420,
 };

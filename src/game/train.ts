@@ -142,11 +142,19 @@ function placeCars(train: Train): void {
   }
 }
 
-/** Current angular velocity (rad/s). Turning radius grows a little with speed so fast trains feel heavier. */
+/**
+ * Current angular velocity (rad/s). Up to stock full speed this is the classic
+ * curve; above it the rate scales with speed so the turning radius stays near
+ * MOVEMENT.turnRadius, widening slightly as engines push speed higher.
+ */
 export function turnRateOf(train: Train): number {
-  if (train.speed <= 0.01) return 0;
-  const speedFactor = 1 / (0.8 + 0.2 * (train.speed / MOVEMENT.baseSpeed));
-  return train.steer * MOVEMENT.turnRate * speedFactor;
+  const v = train.speed;
+  if (v <= 0.01) return 0;
+  const classic = MOVEMENT.turnRate / (0.8 + 0.2 * (v / MOVEMENT.baseSpeed));
+  const extra = Math.max(0, v / MOVEMENT.turnRadiusRefSpeed - 1);
+  const radius = MOVEMENT.turnRadius * (1 + MOVEMENT.turnRadiusWiden * extra);
+  const rate = Math.min(MOVEMENT.maxTurnRate, Math.max(classic, v / radius));
+  return train.steer * rate;
 }
 
 const terrainOut = { x: 0, y: 0 };

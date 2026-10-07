@@ -38,7 +38,7 @@ export const MOVEMENT = {
 };
 
 export const ECONOMY = {
-  startGold: 5000,
+  startGold: 2000,
   /** gold per enemy car at wave w: base + perWave * w */
   killBase: 14,
   killPerWave: 4,
@@ -61,9 +61,9 @@ export const COMBAT = {
   mineTrigger: 18,
   ramDps: 14,
   pickupLife: 30,
-  /** locomotive HP for the player's starting engine */
-  locoHp: 420,
-  locoHpPerLevel: 90,
+  /** locomotive HP for the player's starting engine (~20% above prior) */
+  locoHp: 504,
+  locoHpPerLevel: 108,
   /** innate self-repair of the player's locomotive, HP per second */
   locoRegen: 2.5,
   grappleDuration: 0.75,
@@ -73,7 +73,7 @@ export const COMBAT = {
   rocketSpread: 0.05,
   /** sniper rounds are near-hitscan; hits are swept so they cannot tunnel */
   sniperSpeed: 1600,
-  /** sniper target score multiplier for a locomotive (killing it derails the train) */
+  /** sniper target score multiplier for a locomotive (killing the last engine ends the train) */
   sniperLocoWeight: 2,
 };
 
@@ -100,14 +100,22 @@ export const CAR_DEFS: Record<CarKind, CarDef> = {
     name: "Engine",
     glyph: "E",
     description:
-      "Adds thrust. Every other car drags the train a little; engines do not. More engines, faster train. Sturdy.",
+      "Adds thrust and mounts a slow turret. Bought engines couple at the front with your other engines. More engines, faster train — and you only lose when the last engine dies. Sturdy.",
     color: "#c0392b",
     accent: "#ff7b6b",
-    baseCost: 120,
-    baseHp: 200,
-    hpPerLevel: 45,
+    baseCost: 168,
+    baseHp: 240,
+    hpPerLevel: 54,
     maxLevel: 5,
-    stats: { speedBonus: 16, speedBonusPerLevel: 6 },
+    stats: {
+      speedBonus: 16,
+      speedBonusPerLevel: 6,
+      damage: 16,
+      damagePerLevel: 5,
+      cooldown: 1.6,
+      range: 300,
+      rangePerLevel: 15,
+    },
   },
   gun: {
     kind: "gun",

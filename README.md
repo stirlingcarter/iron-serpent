@@ -26,7 +26,8 @@ deploys to GitHub Pages.
 - Every car has HP. When a car is destroyed, **everything behind it derails**, unless a
   Re-Coupler further back catches the break: cars between the hit and that Re-Coupler are
   lost, then the Re-Coupler snaps forward onto the next surviving car and keeps its segment.
-  You lose when the locomotive dies.
+  You lose when your **last engine** dies — spare engines couple at the front, and losing the
+  lead engine only promotes the next one.
 - Every non-engine car drags top speed a little (`MOVEMENT.carDrag`); locomotives and Engine
   cars are exempt, so investing in engines pays for a longer train.
 - Enemy trains arrive in **waves** (usually one train, sometimes two or three), built from the
@@ -38,13 +39,13 @@ deploys to GitHub Pages.
   the fastest way to derail a whole train. Enemy gunners are less accurate at long range;
   keeping your distance is a real defence.
 - Open the **Depot** (shop) at any time to buy, sell, upgrade and reorder cars.
-- The current test tuning starts the player with **5,000 gold** and allows up to **1,000 cars**.
+- The current tuning starts the player with **2,000 gold** and allows up to **1,000 cars**.
 
 ### Cars
 
 | Car | What it does |
 | --- | --- |
-| Engine | Extra thrust; more engines, faster train. Cargo cars drag speed; engines do not |
+| Engine | Extra thrust + slow turret; bought engines couple at the front. Cargo cars drag speed; engines do not. Survive as long as any engine remains |
 | Turret | Auto-targets and shoots the nearest enemy car |
 | Rocket Car | Slow rockets with splash damage; long cooldown. Bursts over the predicted aim point if it touches nothing on the way |
 | Sniper Car | Very long range, heavy single hits, slow fire. Targets the enemy car with the most HP left in range (locomotives count double) |

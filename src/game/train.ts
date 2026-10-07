@@ -38,6 +38,21 @@ export function createCar(kind: CarKind, level = 1, isLoco = false, hpScale = 1)
   };
 }
 
+/**
+ * Couple a car onto a train. Engines always join the leading engine block
+ * (right after the last engine at the front); everything else goes on the tail.
+ */
+export function coupleCar(train: Train, car: Car): void {
+  const cars = train.cars;
+  if (car.kind === "engine") {
+    let insertAt = 0;
+    while (insertAt < cars.length && cars[insertAt].kind === "engine") insertAt++;
+    cars.splice(insertAt, 0, car);
+  } else {
+    cars.push(car);
+  }
+}
+
 export function createTrain(
   team: Team,
   x: number,

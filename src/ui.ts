@@ -297,8 +297,8 @@ export function mountUi(root: HTMLElement, game: GameApi): UiHandle {
   const steps = [
     "Hold LEFT or RIGHT for smooth steering. Drag SPEED to set any speed.",
     "Enemy trains arrive in waves and get tougher. Every enemy car you destroy pays gold.",
-    "When a car dies, every car behind it derails — unless a Re-Coupler further back catches the break, snaps forward, and saves its segment. Cargo cars slow you down; engines do not. Extra engines couple at the front; you only lose when your last engine dies.",
-    "Your turrets aim at the frontmost enemy car they can reach. Wreck an enemy's last engine and its whole train derails, leaving a crate that adds a car to yours.",
+    "When a car dies, every car behind it derails — unless a Re-Coupler further back catches the break, snaps forward, and saves its segment. Cargo cars slow you down; engines do not. Lose your front engine and the run is over.",
+    "Your turrets aim at the frontmost enemy car they can reach. Wreck a locomotive and its whole train derails, leaving a crate that adds a car to yours.",
     "SHOP (B) opens the Depot: buy, sell, upgrade and reorder cars. Time stops while it is open.",
   ];
   steps.forEach((text, i) => {
@@ -419,7 +419,7 @@ export function mountUi(root: HTMLElement, game: GameApi): UiHandle {
     el(
       "p",
       "section__hint",
-      "Front to back. Engines stay at the front; losing the lead engine promotes the next one if you still have engines. A destroyed cargo car derails everything behind it unless a Re-Coupler further back catches the break. Every non-engine car slows the train a little.",
+      "Front to back. Engines can sit anywhere, like any other car. A destroyed car derails every car behind it, so keep what you cannot afford to lose near the front. A Re-Coupler anywhere behind a break eats the cars up to itself, then snaps onto the next survivor and keeps its segment. Every non-engine car slows the train a little.",
     ),
     buffLine,
     trainList,
@@ -435,7 +435,7 @@ export function mountUi(root: HTMLElement, game: GameApi): UiHandle {
     el(
       "p",
       "section__hint",
-      "New cars couple to the back — except Engines, which always join the engines at the front.",
+      "New cars couple to the back of your train, engines included. Reorder them anywhere behind the locomotive.",
     ),
     fullHint,
     buyGrid,
@@ -589,7 +589,7 @@ export function mountUi(root: HTMLElement, game: GameApi): UiHandle {
   function renderDead(): void {
     const snap = game.snap;
     const { stats, best } = snap;
-    setDeadSub(`Your last engine was destroyed on wave ${snap.wave}.`);
+    setDeadSub(`Your locomotive was destroyed on wave ${snap.wave}.`);
     const isBest = best.wave > 0 && snap.wave >= best.wave && snap.time >= best.time - 0.01;
     badgeWrap.hidden = !isBest;
     statsGrid.replaceChildren(

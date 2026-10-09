@@ -26,8 +26,8 @@ deploys to GitHub Pages.
 - Every car has HP. When a car is destroyed, **everything behind it derails**, unless a
   Re-Coupler further back catches the break: cars between the hit and that Re-Coupler are
   lost, then the Re-Coupler snaps forward onto the next surviving car and keeps its segment.
-  You lose when your **last engine** dies — spare engines couple at the front, and losing the
-  lead engine only promotes the next one.
+  You lose when the locomotive dies. Extra engines can sit anywhere in the train, like any
+  other car.
 - Every non-engine car drags top speed a little (`MOVEMENT.carDrag`); locomotives and Engine
   cars are exempt, so investing in engines pays for a longer train.
 - Enemy trains arrive in **waves** (usually one train, sometimes two or three), built from the
@@ -45,7 +45,7 @@ deploys to GitHub Pages.
 
 | Car | What it does |
 | --- | --- |
-| Engine | Extra thrust + slow turret; bought engines couple at the front. Cargo cars drag speed; engines do not. Survive as long as any engine remains |
+| Engine | Extra thrust + slow turret. Couples anywhere in the train, like any other car. Cargo cars drag speed; engines do not |
 | Turret | Auto-targets and shoots the nearest enemy car |
 | Rocket Car | Slow rockets with splash damage; long cooldown. Bursts over the predicted aim point if it touches nothing on the way |
 | Sniper Car | Very long range, heavy single hits, slow fire. Targets the enemy car with the most HP left in range (locomotives count double) |

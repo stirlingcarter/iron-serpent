@@ -1165,58 +1165,18 @@ export class Game implements GameApi {
    * A car died. Normally it and everything behind it derail. A Re-Coupler
    * anywhere behind the break instead eats the cars up to itself, then snaps
    * forward onto the next surviving car so its segment stays coupled.
-   * Losing the lead engine only ends the train when no other engines remain;
-   * otherwise the next car becomes the new locomotive.
+   * Locomotive death (index 0) always ends the train. An engine anywhere else
+   * dies like any other car.
    */
   private destroyFrom(train: Train, index: number): void {
-    if (index === 0) {
-      const hasBackupEngine = train.cars.some((c, i) => i > 0 && c.kind === "engine");
-      if (hasBackupEngine) {
-        this.loseFrontEngine(train);
+    if (index > 0) {
+      const couplerIdx = this.findRecouplerBehind(train, index);
+      if (couplerIdx >= 0) {
+        this.recouple(train, index, couplerIdx);
         return;
       }
-      this.derailFrom(train, 0);
-      return;
-    }
-    const couplerIdx = this.findRecouplerBehind(train, index);
-    if (couplerIdx >= 0) {
-      this.recouple(train, index, couplerIdx);
-      return;
     }
     this.derailFrom(train, index);
-  }
-
-  /**
-   * Destroy only the lead engine and promote the next car to locomotive.
-   * Callers must ensure another engine remains on the train.
-   */
-  private loseFrontEngine(train: Train): void {
-    const cars = train.cars;
-    const dead = cars[0];
-    if (!dead) return;
-    const isEnemy = train.team === "enemy";
-    const def = CAR_DEFS[dead.kind];
-    burst(this.particles, dead.x, dead.y, def.accent, 22, 240);
-    burst(this.particles, dead.x, dead.y, "#ffb067", 10, 160);
-    dead.grappleTarget = null;
-    if (isEnemy) {
-      this.addGold(this.killReward(false), dead.x, dead.y);
-      this.snap.stats.kills++;
-    } else {
-      this.snap.stats.carsLost++;
-    }
-    cars.shift();
-    const loco = cars[0];
-    train.x = loco.x;
-    train.y = loco.y;
-    train.angle = loco.angle;
-    closeGap(train, 0);
-    updateBuffs(train);
-    if (!isEnemy) {
-      this.shake = Math.max(this.shake, 6);
-      this.toast("Lead engine lost — next engine took the front");
-    }
-    this.markDirty();
   }
 
   /**
@@ -1272,7 +1232,7 @@ export class Game implements GameApi {
     this.markDirty();
   }
 
-  /** Destroy cars[index] and everything behind it. index 0 (last engine) kills the train. */
+  /** Destroy cars[index] and everything behind it. index 0 kills the train. */
   private derailFrom(train: Train, index: number): void {
     const cars = train.cars;
     if (index >= cars.length) return;

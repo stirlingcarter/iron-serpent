@@ -73,7 +73,7 @@ export const COMBAT = {
   rocketSpread: 0.05,
   /** sniper rounds are near-hitscan; hits are swept so they cannot tunnel */
   sniperSpeed: 1600,
-  /** sniper target score multiplier for a locomotive (killing the last engine ends the train) */
+  /** sniper target score multiplier for a locomotive (killing it derails the train) */
   sniperLocoWeight: 2,
 };
 
@@ -100,7 +100,7 @@ export const CAR_DEFS: Record<CarKind, CarDef> = {
     name: "Engine",
     glyph: "E",
     description:
-      "Adds thrust and mounts a slow turret. Bought engines couple at the front with your other engines. More engines, faster train — and you only lose when the last engine dies. Sturdy.",
+      "Adds thrust and mounts a slow turret. Couples anywhere in the train, like any other car. More engines, faster train. Sturdy.",
     color: "#c0392b",
     accent: "#ff7b6b",
     baseCost: 168,
